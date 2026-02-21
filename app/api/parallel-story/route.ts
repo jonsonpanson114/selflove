@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   );
 
   const model = genAI.getGenerativeModel({
-    model: "gemini-3-flash",
+    model: "gemini-3-flash-preview",
     systemInstruction: parallelStorySystemPrompt,
   });
 
