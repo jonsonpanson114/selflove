@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "generate-icons": "node scripts/generate-icons.js",
+    "predev": "node scripts/generate-icons.js",
+    "prebuild": "node scripts/generate-icons.js",
     "dev": "next dev",
     "build": "next build",
     "start": "next start"

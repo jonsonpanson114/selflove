@@ -11,14 +11,23 @@ export default function BookPage({ children, className = "" }: BookPageProps) {
       style={{ backgroundColor: "var(--cream)", minHeight: "100vh" }}
       className={className}
     >
-      <div style={{ maxWidth: "600px", margin: "0 auto", padding: "2rem 1.25rem" }}>
+      <div
+        style={{
+          maxWidth: "600px",
+          margin: "0 auto",
+          // Side padding also respects safe area (landscape notch)
+          padding: "2rem max(1.25rem, env(safe-area-inset-right, 0px)) 0 max(1.25rem, env(safe-area-inset-left, 0px))",
+        }}
+      >
         <div
           style={{
             backgroundColor: "var(--paper)",
             border: "1px solid var(--border)",
             borderRadius: "12px",
-            padding: "2rem 1.75rem",
+            // Bottom padding accounts for home indicator
+            padding: "2rem 1.75rem calc(2rem + env(safe-area-inset-bottom, 0px))",
             boxShadow: "0 2px 16px rgba(61, 51, 40, 0.06)",
+            marginBottom: "2rem",
           }}
         >
           {children}

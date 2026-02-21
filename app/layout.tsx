@@ -11,6 +11,9 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "selflove",
   },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
@@ -18,6 +21,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -28,7 +33,9 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <head>
-        <link rel="apple-touch-icon" href="/icons/icon-192.svg" />
+        {/* iOS home screen icon (PNG required for proper iOS support) */}
+        <link rel="apple-touch-icon" href="/icons/icon-180.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192.png" />
       </head>
       <body>
         <ServiceWorkerRegistration />

@@ -9,18 +9,39 @@
   --gold: #C4A96A;
   --border: #D4C9B0;
   --sage-light: #E8EFE6;
+
+  /* Safe area insets (fallback: 0px) */
+  --sat: env(safe-area-inset-top, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
 }
 
 * {
   box-sizing: border-box;
+  /* Remove tap highlight on iOS/Android */
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  /* Prevent iOS rubber-band bounce on the html element */
+  overflow: hidden;
+  height: 100%;
 }
 
 body {
   background-color: var(--cream);
   color: var(--ink);
   font-family: 'Noto Sans JP', 'Helvetica Neue', Arial, sans-serif;
-  min-height: 100vh;
+  height: 100%;
+  overflow-y: auto;
   margin: 0;
+  /* iOS momentum scrolling */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent pull-to-refresh and overscroll glow */
+  overscroll-behavior-y: none;
+  /* Safe area top padding so content clears status bar when viewport-fit=cover */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .serif {
@@ -36,6 +57,9 @@ body {
 
 textarea {
   resize: none;
+  /* Remove iOS inner shadow */
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 /* Scrollbar styling */
