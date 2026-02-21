@@ -1,11 +1,11 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
   parallelStorySystemPrompt,
   buildParallelStoryUserMessage,
 } from "@/lib/parallelStoryPrompt";
 import { NextRequest } from "next/server";
 
-const anthropic = new Anthropic();
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
 
 export async function POST(req: NextRequest) {
   const { userEntry, storySummary } = await req.json();
@@ -19,27 +19,20 @@ export async function POST(req: NextRequest) {
     storySummary || ""
   );
 
-  const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-6",
-    max_tokens: 1200,
-    system: parallelStorySystemPrompt,
-    messages: [
-      {
-        role: "user",
-        content: userMessage,
-      },
-    ],
+  const model = genAI.getGenerativeModel({
+    model: "gemini-3.0-flash",
+    systemInstruction: parallelStorySystemPrompt,
   });
+
+  const result = await model.generateContentStream(userMessage);
 
   const readable = new ReadableStream({
     async start(controller) {
       try {
-        for await (const event of stream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            controller.enqueue(new TextEncoder().encode(event.delta.text));
+        for await (const chunk of result.stream) {
+          const text = chunk.text();
+          if (text) {
+            controller.enqueue(new TextEncoder().encode(text));
           }
         }
       } finally {

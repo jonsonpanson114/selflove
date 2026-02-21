@@ -1,8 +1,8 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { innerVoiceSystemPrompt } from "@/lib/innerVoicePrompt";
 import { NextRequest } from "next/server";
 
-const anthropic = new Anthropic();
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
 
 export async function POST(req: NextRequest) {
   const { userEntry } = await req.json();
@@ -11,27 +11,20 @@ export async function POST(req: NextRequest) {
     return new Response("Missing userEntry", { status: 400 });
   }
 
-  const stream = anthropic.messages.stream({
-    model: "claude-haiku-4-5-20251001",
-    max_tokens: 300,
-    system: innerVoiceSystemPrompt,
-    messages: [
-      {
-        role: "user",
-        content: userEntry,
-      },
-    ],
+  const model = genAI.getGenerativeModel({
+    model: "gemini-3.0-flash",
+    systemInstruction: innerVoiceSystemPrompt,
   });
+
+  const result = await model.generateContentStream(userEntry);
 
   const readable = new ReadableStream({
     async start(controller) {
       try {
-        for await (const event of stream) {
-          if (
-            event.type === "content_block_delta" &&
-            event.delta.type === "text_delta"
-          ) {
-            controller.enqueue(new TextEncoder().encode(event.delta.text));
+        for await (const chunk of result.stream) {
+          const text = chunk.text();
+          if (text) {
+            controller.enqueue(new TextEncoder().encode(text));
           }
         }
       } finally {
