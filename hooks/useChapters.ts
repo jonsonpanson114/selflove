@@ -10,6 +10,7 @@ export interface Chapter {
   innerVoice: string;
   parallelStory: string;
   createdAt: number;
+  mood?: number; // 1〜5
 }
 
 const STORAGE_KEY = "selflove-chapters";
@@ -66,5 +67,14 @@ export function useChapters() {
     return chapters.length + 1;
   }, [chapters]);
 
-  return { chapters, saveChapter, getStorySummary, getNextChapterNumber, loaded };
+  const importChapters = useCallback((imported: Chapter[]) => {
+    setChapters(imported);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(imported));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  return { chapters, saveChapter, importChapters, getStorySummary, getNextChapterNumber, loaded };
 }

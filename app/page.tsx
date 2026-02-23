@@ -1,12 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import BookPage from "@/components/BookPage";
 import StoryTabs from "@/components/StoryTabs";
 import InnerVoiceResponse from "@/components/InnerVoiceResponse";
 import { useChapters } from "@/hooks/useChapters";
 import { getTodayAffirmation, getGreeting } from "@/lib/affirmations";
+import {
+  writingPrompts,
+  getRandomPromptIndex,
+  getNextPromptIndex,
+} from "@/lib/writingPrompts";
+import {
+  getNotifSettings,
+  shouldShowNotification,
+} from "@/lib/notificationSettings";
+
+const MOOD_OPTIONS = [
+  { value: 1, emoji: "😔", label: "辛い" },
+  { value: 2, emoji: "😐", label: "普通" },
+  { value: 3, emoji: "🙂", label: "良い" },
+  { value: 4, emoji: "😊", label: "とても良い" },
+  { value: 5, emoji: "✨", label: "最高" },
+];
 
 async function streamResponse(
   url: string,
@@ -38,16 +55,33 @@ async function streamResponse(
 
 export default function Home() {
   const [entry, setEntry] = useState("");
+  const [mood, setMood] = useState<number | null>(null);
   const [innerVoice, setInnerVoice] = useState("");
   const [story, setStory] = useState("");
   const [isLoadingVoice, setIsLoadingVoice] = useState(false);
   const [isLoadingStory, setIsLoadingStory] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedEntry, setSubmittedEntry] = useState("");
+  const [submittedMood, setSubmittedMood] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [promptIndex, setPromptIndex] = useState(() => getRandomPromptIndex());
 
-  const { saveChapter, getStorySummary, getNextChapterNumber, loaded } =
+  const { chapters, saveChapter, getStorySummary, getNextChapterNumber, loaded } =
     useChapters();
+
+  // 通知チェック: 今日まだ書いていない場合に通知を表示
+  useEffect(() => {
+    if (!loaded) return;
+    const today = new Date().toISOString().split("T")[0];
+    const hasTodayEntry = chapters.some((c) => c.date === today);
+    const settings = getNotifSettings();
+    if (shouldShowNotification(settings, hasTodayEntry)) {
+      new Notification("selflove", {
+        body: "今日の一ページを書いてみませんか？",
+        icon: "/icons/icon-192.png",
+      });
+    }
+  }, [loaded, chapters]);
 
   const today = new Date();
   const dateStr = today.toLocaleDateString("ja-JP", {
@@ -74,6 +108,7 @@ export default function Home() {
     setStory("");
     setIsSubmitted(true);
     setSubmittedEntry(entryText);
+    setSubmittedMood(mood);
     setError("");
 
     try {
@@ -98,6 +133,7 @@ export default function Home() {
         userEntry: entryText,
         innerVoice: voiceResult,
         parallelStory: storyResult,
+        mood: mood ?? undefined,
       });
     } catch {
       setError("通信エラーが発生しました。もう一度試してください。");
@@ -109,10 +145,13 @@ export default function Home() {
   const handleReset = () => {
     setIsSubmitted(false);
     setEntry("");
+    setMood(null);
     setInnerVoice("");
     setStory("");
     setSubmittedEntry("");
+    setSubmittedMood(null);
     setError("");
+    setPromptIndex(getRandomPromptIndex());
   };
 
   return (
@@ -164,6 +203,51 @@ export default function Home() {
       {/* Entry form */}
       {!isSubmitted && (
         <div style={{ marginBottom: "1.75rem" }}>
+          {/* Mood selector */}
+          <div style={{ marginBottom: "1rem" }}>
+            <p
+              style={{
+                fontSize: "0.72rem",
+                color: "var(--ink)",
+                opacity: 0.4,
+                letterSpacing: "0.05em",
+                marginBottom: "0.5rem",
+              }}
+            >
+              今の気分は？
+            </p>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              {MOOD_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() =>
+                    setMood(mood === option.value ? null : option.value)
+                  }
+                  title={option.label}
+                  style={{
+                    fontSize: "1.5rem",
+                    lineHeight: 1,
+                    padding: "0.3rem",
+                    background: "none",
+                    border: "2px solid",
+                    borderColor:
+                      mood === option.value ? "var(--sage)" : "transparent",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    opacity: mood === null || mood === option.value ? 1 : 0.35,
+                    transition: "all 0.15s",
+                    backgroundColor:
+                      mood === option.value
+                        ? "var(--sage-light)"
+                        : "transparent",
+                  }}
+                >
+                  {option.emoji}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <textarea
             value={entry}
             onChange={(e) => setEntry(e.target.value)}
@@ -180,7 +264,7 @@ export default function Home() {
               lineHeight: "1.9",
               fontFamily: "Noto Sans JP, sans-serif",
               outline: "none",
-              marginBottom: "1rem",
+              marginBottom: "0.6rem",
               transition: "border-color 0.2s",
             }}
             onFocus={(e) =>
@@ -190,6 +274,51 @@ export default function Home() {
               (e.currentTarget.style.borderColor = "var(--border)")
             }
           />
+
+          {/* Writing prompt hint */}
+          {!entry && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.75rem",
+                marginBottom: "1rem",
+                opacity: 0.5,
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "0.75rem",
+                  color: "var(--ink)",
+                  fontStyle: "italic",
+                  letterSpacing: "0.01em",
+                  lineHeight: "1.6",
+                  margin: 0,
+                  flex: 1,
+                }}
+              >
+                ヒント: {writingPrompts[promptIndex]}
+              </p>
+              <button
+                onClick={() => setPromptIndex(getNextPromptIndex(promptIndex))}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "0.7rem",
+                  color: "var(--ink)",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  letterSpacing: "0.03em",
+                  whiteSpace: "nowrap",
+                  padding: "0.2rem 0",
+                  flexShrink: 0,
+                }}
+              >
+                別のヒント
+              </button>
+            </div>
+          )}
+
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button
               onClick={handleSubmit}
@@ -217,6 +346,17 @@ export default function Home() {
       {/* Submitted entry display */}
       {isSubmitted && (
         <div style={{ marginBottom: "1.75rem" }}>
+          {submittedMood !== null && (
+            <p
+              style={{
+                fontSize: "1.3rem",
+                marginBottom: "0.5rem",
+                lineHeight: 1,
+              }}
+            >
+              {MOOD_OPTIONS.find((o) => o.value === submittedMood)?.emoji}
+            </p>
+          )}
           <p
             style={{
               fontSize: "0.83rem",

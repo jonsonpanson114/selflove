@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import BookPage from "@/components/BookPage";
 import ChapterCard from "@/components/ChapterCard";
@@ -8,11 +8,51 @@ import StoryTabs from "@/components/StoryTabs";
 import InnerVoiceResponse from "@/components/InnerVoiceResponse";
 import { useChapters, Chapter } from "@/hooks/useChapters";
 
+const MOOD_EMOJI: Record<number, string> = {
+  1: "😔",
+  2: "😐",
+  3: "🙂",
+  4: "😊",
+  5: "✨",
+};
+
 export default function ChaptersPage() {
-  const { chapters, loaded } = useChapters();
+  const { chapters, importChapters, loaded } = useChapters();
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
+  const [importError, setImportError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sortedChapters = [...chapters].reverse();
+
+  const handleExport = () => {
+    const json = JSON.stringify(chapters, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `selflove-chapters-${new Date().toISOString().split("T")[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImportError("");
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string);
+        if (!Array.isArray(parsed)) throw new Error("Invalid format");
+        importChapters(parsed as Chapter[]);
+        setSelectedChapter(null);
+      } catch {
+        setImportError("ファイルの形式が正しくありません。");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
 
   return (
     <BookPage>
@@ -50,8 +90,64 @@ export default function ChaptersPage() {
         >
           過去の章
         </p>
-        <div style={{ width: "3rem" }} />
+        {/* Export / Import */}
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <button
+            onClick={handleExport}
+            disabled={chapters.length === 0}
+            title="JSONでエクスポート"
+            style={{
+              background: "none",
+              border: "none",
+              fontSize: "0.72rem",
+              color: "var(--ink)",
+              opacity: chapters.length === 0 ? 0.2 : 0.45,
+              cursor: chapters.length === 0 ? "default" : "pointer",
+              fontFamily: "inherit",
+              letterSpacing: "0.03em",
+              padding: "0.2rem 0.4rem",
+            }}
+          >
+            保存
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            title="JSONからインポート"
+            style={{
+              background: "none",
+              border: "none",
+              fontSize: "0.72rem",
+              color: "var(--ink)",
+              opacity: 0.45,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              letterSpacing: "0.03em",
+              padding: "0.2rem 0.4rem",
+            }}
+          >
+            読込
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImport}
+            style={{ display: "none" }}
+          />
+        </div>
       </div>
+
+      {importError && (
+        <p
+          style={{
+            color: "#a05040",
+            fontSize: "0.78rem",
+            marginBottom: "1rem",
+          }}
+        >
+          {importError}
+        </p>
+      )}
 
       {/* Empty state */}
       {loaded && chapters.length === 0 && (
@@ -112,6 +208,19 @@ export default function ChaptersPage() {
                 paddingTop: "1.5rem",
               }}
             >
+              {/* Mood */}
+              {selectedChapter.mood !== undefined && (
+                <p
+                  style={{
+                    fontSize: "1.3rem",
+                    marginBottom: "0.5rem",
+                    lineHeight: 1,
+                  }}
+                >
+                  {MOOD_EMOJI[selectedChapter.mood]}
+                </p>
+              )}
+
               {/* User entry */}
               <p
                 style={{
@@ -168,7 +277,9 @@ export default function ChaptersPage() {
           borderTop: "1px solid var(--border)",
           paddingTop: "1.25rem",
           marginTop: "2rem",
-          textAlign: "center",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
         <Link
@@ -182,6 +293,18 @@ export default function ChaptersPage() {
           }}
         >
           今日の章へ戻る
+        </Link>
+        <Link
+          href="/stats"
+          style={{
+            fontSize: "0.78rem",
+            color: "var(--sage)",
+            opacity: 0.7,
+            textDecoration: "none",
+            letterSpacing: "0.03em",
+          }}
+        >
+          統計 →
         </Link>
       </div>
     </BookPage>
