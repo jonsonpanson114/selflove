@@ -64,10 +64,16 @@ export default function Home() {
   const [submittedEntry, setSubmittedEntry] = useState("");
   const [submittedMood, setSubmittedMood] = useState<number | null>(null);
   const [error, setError] = useState("");
-  const [promptIndex, setPromptIndex] = useState(() => getRandomPromptIndex());
+  const [promptIndex, setPromptIndex] = useState(0); // Server uses 0
+  const [mounted, setMounted] = useState(false);
 
   const { chapters, saveChapter, getStorySummary, getNextChapterNumber, loaded } =
     useChapters();
+
+  useEffect(() => {
+    setMounted(true);
+    setPromptIndex(getRandomPromptIndex());
+  }, []);
 
   // 通知チェック: 今日まだ書いていない場合に通知を表示
   useEffect(() => {
@@ -84,15 +90,15 @@ export default function Home() {
   }, [loaded, chapters]);
 
   const today = new Date();
-  const dateStr = today.toLocaleDateString("ja-JP", {
+  const dateStr = mounted ? today.toLocaleDateString("ja-JP", {
     year: "numeric",
     month: "long",
     day: "numeric",
     weekday: "short",
-  });
+  }) : "";
   const chapterNumber = loaded ? getNextChapterNumber() : "—";
-  const affirmation = getTodayAffirmation();
-  const greeting = getGreeting();
+  const affirmation = mounted ? getTodayAffirmation() : "";
+  const greeting = mounted ? getGreeting() : "";
   const isLoading = isLoadingVoice || isLoadingStory;
 
   const handleSubmit = async () => {
@@ -155,7 +161,7 @@ export default function Home() {
   };
 
   return (
-    <BookPage>
+    <BookPage isPulsing={isLoading}>
       {/* Header */}
       <div
         style={{
@@ -462,6 +468,18 @@ export default function Home() {
           }}
         >
           呼吸のシーンへ →
+        </Link>
+        <Link
+          href="/garden"
+          style={{
+            fontSize: "0.8rem",
+            color: "var(--ink)",
+            opacity: 0.4,
+            textDecoration: "none",
+            letterSpacing: "0.03em",
+          }}
+        >
+          心の庭へ →
         </Link>
         <Link
           href="/chapters"

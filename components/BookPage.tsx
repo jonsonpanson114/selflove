@@ -3,13 +3,14 @@ import { ReactNode } from "react";
 interface BookPageProps {
   children: ReactNode;
   className?: string;
+  isPulsing?: boolean;
 }
 
-export default function BookPage({ children, className = "" }: BookPageProps) {
+export default function BookPage({ children, className = "", isPulsing = false }: BookPageProps) {
   return (
     <div
       style={{ backgroundColor: "var(--cream)", minHeight: "100vh" }}
-      className={className}
+      className={`${className} ${isPulsing ? "bg-pulse" : ""}`}
     >
       <div
         style={{

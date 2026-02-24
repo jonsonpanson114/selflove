@@ -51,6 +51,7 @@ body {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -66,10 +67,32 @@ textarea {
 ::-webkit-scrollbar {
   width: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--cream);
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 3px;
+}
+
+@keyframes gentle-pulse {
+  0% {
+    background-color: var(--cream);
+  }
+
+  50% {
+    background-color: #E8E5DF;
+    /* slightly darker cream */
+  }
+
+  100% {
+    background-color: var(--cream);
+  }
+}
+
+.bg-pulse {
+  animation: gentle-pulse 4s ease-in-out infinite;
+  transition: background-color 2s ease;
 }
