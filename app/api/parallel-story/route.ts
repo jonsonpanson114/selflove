@@ -20,31 +20,39 @@ export async function POST(req: NextRequest) {
   );
 
   const model = genAI.getGenerativeModel({
-    model: "gemini-3-flash-preview",
+    model: "gemini-2.5-flash",
     systemInstruction: parallelStorySystemPrompt,
   });
 
-  const result = await model.generateContentStream(userMessage);
+  try {
+    const result = await model.generateContentStream(userMessage);
 
-  const readable = new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const chunk of result.stream) {
-          const text = chunk.text();
-          if (text) {
-            controller.enqueue(new TextEncoder().encode(text));
+    const readable = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of result.stream) {
+            const text = chunk.text();
+            if (text) {
+              controller.enqueue(new TextEncoder().encode(text));
+            }
           }
+        } catch (streamError) {
+          console.error("Stream reading error:", streamError);
+          controller.enqueue(new TextEncoder().encode("\n[物語の生成中にエラーが発生しました。]"));
+        } finally {
+          controller.close();
         }
-      } finally {
-        controller.close();
-      }
-    },
-  });
+      },
+    });
 
-  return new Response(readable, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "no-cache",
-    },
-  });
+    return new Response(readable, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache",
+      },
+    });
+  } catch (error) {
+    console.error("Gemini API error in parallel-story:", error);
+    return new Response("Failed to generate story", { status: 500 });
+  }
 }
