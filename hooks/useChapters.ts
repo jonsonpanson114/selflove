@@ -94,9 +94,22 @@ export function useChapters() {
     }
   }, []);
 
+  const deleteChapter = useCallback((id: string) => {
+    setChapters((prev) => {
+      const updated = prev.filter((c) => c.id !== id);
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+      } catch {
+        // ignore
+      }
+      return updated;
+    });
+  }, []);
+
   return {
     chapters,
     saveChapter,
+    deleteChapter,
     getStorySummary,
     getRenStorySummary,
     getNextChapterNumber,

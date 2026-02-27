@@ -17,7 +17,7 @@ const MOOD_EMOJI: Record<number, string> = {
 };
 
 export default function ChaptersPage() {
-  const { chapters, importChapters, loaded } = useChapters();
+  const { chapters, importChapters, deleteChapter, loaded } = useChapters();
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [importError, setImportError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -281,6 +281,38 @@ export default function ChaptersPage() {
                     : []),
                 ]}
               />
+
+              {/* Delete Button */}
+              <div
+                style={{
+                  marginTop: "2rem",
+                  display: "flex",
+                  justifyContent: "center",
+                }}
+              >
+                <button
+                  onClick={() => {
+                    if (confirm("この章を完全に削除しますか？\nこの操作は取り消せません。")) {
+                      deleteChapter(selectedChapter.id);
+                      setSelectedChapter(null);
+                    }
+                  }}
+                  style={{
+                    background: "none",
+                    border: "1px solid #a05040",
+                    color: "#a05040",
+                    padding: "0.4rem 1rem",
+                    borderRadius: "4px",
+                    fontSize: "0.75rem",
+                    cursor: "pointer",
+                    opacity: 0.6,
+                    fontFamily: "inherit",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  この章を削除する
+                </button>
+              </div>
             </div>
           )}
         </>
