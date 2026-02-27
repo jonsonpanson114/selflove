@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+# 1. 物理的なファイル名チェック (絶対通さない砦)
+echo " [DEBUG] Checking staged files for env files..."
+STAGED_ENV_FILES=$(git diff --cached --name-only | grep -E '^\.env(\..+)?$' | grep -v '\.example$') || true
+
+if [ -n "$STAGED_ENV_FILES" ]; then
+  echo " [SECURITY ERROR] 機密情報ファイルがステージングされています:"
+  echo "$STAGED_ENV_FILES"
+  echo " --------------------------------------------------"
+  echo " .env ファイルをコミットすることは禁止されています。"
+  echo " git rm --cached <file> でステージングから除外してください。"
+  exit 1
+fi
+
+# 2. 内容の自動スキャン (secretlint)
+echo " [SECURITY CHECK] 内容のスキャンを実行中..."
+npx secretlint "**/*"
