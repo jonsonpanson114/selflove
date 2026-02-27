@@ -4,13 +4,15 @@ import { useState, useEffect, useCallback } from "react";
 
 export interface Chapter {
   id: string;
-  date: string;
-  chapterNumber: number;
+  date: string; // ISO string
   userEntry: string;
+  mood?: number; // 1-5
   innerVoice: string;
   parallelStory: string;
-  createdAt: number;
-  mood?: number; // 1〜5
+  renStory?: string; // レン（第二のキャラクター）の物語
+  renStorySummary?: string;
+  chapterNumber: number;
+  createdAt: number; // Unix timestamp
 }
 
 const STORAGE_KEY = "selflove-chapters";
@@ -52,16 +54,32 @@ export function useChapters() {
     []
   );
 
-  const getStorySummary = useCallback((): string => {
-    const recent = chapters.slice(-4);
-    if (recent.length === 0) return "";
+  // 最新N件の物語コンテキストを取得
+  const getStorySummary = (count: number = 3) => {
+    if (chapters.length === 0) return "";
+    const recent = [...chapters]
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, count)
+      .reverse();
+
     return recent
-      .map(
-        (c) =>
-          `第${c.chapterNumber}章（${new Date(c.date).toLocaleDateString("ja-JP", { month: "long", day: "numeric" })}）:\n${c.parallelStory.slice(0, 120)}…`
-      )
-      .join("\n\n");
-  }, [chapters]);
+      .map((c) => `第${c.chapterNumber}章:\n${c.parallelStory}`)
+      .join("\n\n---\n\n");
+  };
+
+  // レンの物語コンテキストを取得
+  const getRenStorySummary = (count: number = 3) => {
+    if (chapters.length === 0) return "";
+    const recent = [...chapters]
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .filter((c) => c.renStory) // renStoryが存在するものだけ
+      .slice(0, count)
+      .reverse();
+
+    return recent
+      .map((c) => `第${c.chapterNumber}章:\n${c.renStory}`)
+      .join("\n\n---\n\n");
+  };
 
   const getNextChapterNumber = useCallback((): number => {
     return chapters.length + 1;
@@ -76,5 +94,13 @@ export function useChapters() {
     }
   }, []);
 
-  return { chapters, saveChapter, importChapters, getStorySummary, getNextChapterNumber, loaded };
+  return {
+    chapters,
+    saveChapter,
+    getStorySummary,
+    getRenStorySummary,
+    getNextChapterNumber,
+    importChapters,
+    loaded,
+  };
 }

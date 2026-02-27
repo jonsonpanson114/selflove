@@ -238,7 +238,6 @@ export default function ChaptersPage() {
                 {selectedChapter.userEntry}
               </p>
 
-              {/* Story tabs */}
               <StoryTabs
                 tabs={[
                   {
@@ -264,6 +263,22 @@ export default function ChaptersPage() {
                       />
                     ),
                   },
+                  ...(selectedChapter.renStory
+                    ? [
+                      {
+                        id: "ren-story",
+                        label: "遠い星の話",
+                        content: (
+                          <InnerVoiceResponse
+                            text={selectedChapter.renStory}
+                            isLoading={false}
+                            label="レンの物語"
+                            isStory={true}
+                          />
+                        ),
+                      },
+                    ]
+                    : []),
                 ]}
               />
             </div>

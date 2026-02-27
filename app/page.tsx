@@ -58,8 +58,10 @@ export default function Home() {
   const [mood, setMood] = useState<number | null>(null);
   const [innerVoice, setInnerVoice] = useState("");
   const [story, setStory] = useState("");
+  const [renStory, setRenStory] = useState("");
   const [isLoadingVoice, setIsLoadingVoice] = useState(false);
   const [isLoadingStory, setIsLoadingStory] = useState(false);
+  const [isLoadingRenStory, setIsLoadingRenStory] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedEntry, setSubmittedEntry] = useState("");
   const [submittedMood, setSubmittedMood] = useState<number | null>(null);
@@ -67,7 +69,7 @@ export default function Home() {
   const [promptIndex, setPromptIndex] = useState(0); // Server uses 0
   const [mounted, setMounted] = useState(false);
 
-  const { chapters, saveChapter, getStorySummary, getNextChapterNumber, loaded } =
+  const { chapters, saveChapter, getStorySummary, getRenStorySummary, getNextChapterNumber, loaded } =
     useChapters();
 
   useEffect(() => {
@@ -99,7 +101,7 @@ export default function Home() {
   const chapterNumber = loaded ? getNextChapterNumber() : "—";
   const affirmation = mounted ? getTodayAffirmation() : "";
   const greeting = mounted ? getGreeting() : "";
-  const isLoading = isLoadingVoice || isLoadingStory;
+  const isLoading = isLoadingVoice || isLoadingStory || isLoadingRenStory;
 
   const handleSubmit = async () => {
     if (!entry.trim() || isLoading) return;
@@ -107,18 +109,22 @@ export default function Home() {
     const entryText = entry.trim();
     const now = new Date();
     const storySummary = getStorySummary();
+    const renStorySummary = getRenStorySummary();
 
     setIsLoadingVoice(true);
     setIsLoadingStory(true);
+    setIsLoadingRenStory(true);
     setInnerVoice("");
     setStory("");
+    setRenStory("");
     setIsSubmitted(true);
     setSubmittedEntry(entryText);
     setSubmittedMood(mood);
     setError("");
 
     try {
-      const [voiceResult, storyResult] = await Promise.all([
+      // 個別に実行して、1つが失敗しても他は続行
+      const [voiceResult, storyResult, renStoryResult] = await Promise.allSettled([
         streamResponse(
           "/api/inner-voice",
           { userEntry: entryText },
@@ -129,22 +135,48 @@ export default function Home() {
           { userEntry: entryText, storySummary },
           (chunk) => setStory((prev) => prev + chunk)
         ),
+        streamResponse(
+          "/api/ren-story",
+          { userEntry: entryText, storySummary: renStorySummary },
+          (chunk) => setRenStory((prev) => prev + chunk)
+        ),
       ]);
+
+      // 成功したものを取り出す
+      const voiceData = voiceResult.status === "fulfilled" ? voiceResult.value : "";
+      const storyData = storyResult.status === "fulfilled" ? storyResult.value : "";
+      const renData = renStoryResult.status === "fulfilled" ? renStoryResult.value : "";
+
+      // 失敗があればエラー表示
+      const failedItems = [];
+      if (voiceResult.status === "rejected") failedItems.push("内なる自分の声");
+      if (storyResult.status === "rejected") failedItems.push("陽菜の物語");
+      if (renStoryResult.status === "rejected") failedItems.push("レンの物語");
 
       setIsLoadingVoice(false);
       setIsLoadingStory(false);
+      setIsLoadingRenStory(false);
 
-      saveChapter({
-        date: now.toISOString().split("T")[0],
-        userEntry: entryText,
-        innerVoice: voiceResult,
-        parallelStory: storyResult,
-        mood: mood ?? undefined,
-      });
-    } catch {
+      // 少なくとも1つ成功していれば保存
+      if (voiceData || storyData || renData) {
+        saveChapter({
+          date: now.toISOString().split("T")[0],
+          userEntry: entryText,
+          innerVoice: voiceData || "（生成に失敗しました）",
+          parallelStory: storyData || "（生成に失敗しました）",
+          renStory: renData,
+          mood: mood ?? undefined,
+        });
+      }
+
+      if (failedItems.length > 0) {
+        setError(`${failedItems.join("、")} の生成に失敗しました。`);
+      }
+    } catch (e) {
       setError("通信エラーが発生しました。もう一度試してください。");
       setIsLoadingVoice(false);
       setIsLoadingStory(false);
+      setIsLoadingRenStory(false);
     }
   };
 
@@ -154,6 +186,7 @@ export default function Home() {
     setMood(null);
     setInnerVoice("");
     setStory("");
+    setRenStory("");
     setSubmittedEntry("");
     setSubmittedMood(null);
     setError("");
@@ -404,6 +437,18 @@ export default function Home() {
                   text={story}
                   isLoading={isLoadingStory}
                   label="陽菜の物語"
+                  isStory={true}
+                />
+              ),
+            },
+            {
+              id: "ren-story",
+              label: "遠い星の話",
+              content: (
+                <InnerVoiceResponse
+                  text={renStory}
+                  isLoading={isLoadingRenStory}
+                  label="レンの物語"
                   isStory={true}
                 />
               ),
