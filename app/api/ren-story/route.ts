@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import {
     renStorySystemPrompt,
     buildRenStoryUserMessage,
@@ -19,21 +19,46 @@ export async function POST(req: NextRequest) {
         storySummary || ""
     );
 
-    const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
-        systemInstruction: renStorySystemPrompt,
-    });
+    console.log("Ren Story Request - userEntry length:", userEntry.length, "storySummary length:", (storySummary || "").length);
 
     try {
+        const model = genAI.getGenerativeModel({
+            model: "gemini-2.5-flash",
+            systemInstruction: renStorySystemPrompt,
+            safetySettings: [
+                {
+                    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+            ],
+        });
+
         const result = await model.generateContentStream(userMessage);
 
         const readable = new ReadableStream({
             async start(controller) {
                 try {
                     for await (const chunk of result.stream) {
-                        const text = chunk.text();
-                        if (text) {
-                            controller.enqueue(new TextEncoder().encode(text));
+                        try {
+                            const text = chunk.text();
+                            if (text) {
+                                controller.enqueue(new TextEncoder().encode(text));
+                            }
+                        } catch (chunkError: any) {
+                            console.error("Chunk error (safety?):", chunkError.message);
+                            // もし安全フィルターで止まった場合は、そこまでの内容で終わるかメッセージを出す
                         }
                     }
                 } catch (streamError) {
@@ -51,8 +76,9 @@ export async function POST(req: NextRequest) {
                 "Cache-Control": "no-cache",
             },
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Gemini API error in ren-story:", error);
-        return new Response("Failed to generate ren story", { status: 500 });
+        console.error("Error Details:", error.message, error.stack);
+        return new Response(`Failed to generate ren story: ${error.message}`, { status: 500 });
     }
 }

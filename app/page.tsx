@@ -170,7 +170,13 @@ export default function Home() {
       }
 
       if (failedItems.length > 0) {
-        setError(`${failedItems.join("、")} の生成に失敗しました。`);
+        // rejectedの場合はReasonからメッセージ取得を試みる
+        const errorMsgs = [];
+        if (voiceResult.status === "rejected") errorMsgs.push(`内なる自分の声 (${voiceResult.reason?.message || "不明なエラー"})`);
+        if (storyResult.status === "rejected") errorMsgs.push(`陽菜の物語 (${storyResult.reason?.message || "不明なエラー"})`);
+        if (renStoryResult.status === "rejected") errorMsgs.push(`レンの物語 (${renStoryResult.reason?.message || "不明なエラー"})`);
+
+        setError(`${errorMsgs.join("、")} の生成に失敗しました。`);
       }
     } catch (e) {
       setError("通信エラーが発生しました。もう一度試してください。");
