@@ -515,18 +515,6 @@ export default function Home() {
           呼吸のシーンへ →
         </Link>
         <Link
-          href="/garden"
-          style={{
-            fontSize: "0.8rem",
-            color: "var(--ink)",
-            opacity: 0.4,
-            textDecoration: "none",
-            letterSpacing: "0.03em",
-          }}
-        >
-          心の庭へ →
-        </Link>
-        <Link
           href="/chapters"
           style={{
             fontSize: "0.8rem",
