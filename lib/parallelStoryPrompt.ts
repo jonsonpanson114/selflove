@@ -26,6 +26,7 @@ export const parallelStorySystemPrompt = `
 - 陽菜の一日の中で、心が動く瞬間を複数描く
 - 最後の段落で、静かな着地点（小さな気づきや温かい場面）を作る
 - タイトルや章番号は書かない。本文だけを書く
+- 【重要】これが第1章の場合（前の概要がない場合）は、陽菜という人物を読者に初めて紹介する「序章」として書く。陽菜がどんな場所に住み、どんな日々を送っているか、その空気感から丁寧に描き始める
 `.trim();
 
 export function buildParallelStoryUserMessage(
@@ -36,10 +37,17 @@ export function buildParallelStoryUserMessage(
 
   if (storySummary) {
     parts.push(`これまでの物語の概要:\n${storySummary}`);
+    parts.push(`今日のユーザーの気持ち・出来事:\n${userEntry}`);
+    parts.push("今日の陽菜の章を書いてください。前の章からの続きとして自然につなげてください。");
+  } else {
+    // 第1章：初めての登場
+    parts.push(`今日のユーザーの気持ち・出来事:\n${userEntry}`);
+    parts.push(
+      "これは物語の第1章です。陽菜という人物を読者に初めて紹介してください。" +
+      "彼女がどんな場所で、どんな日々を送っているか、その空気感から描き始めてください。" +
+      "今日のユーザーの感情テーマを、陽菜の「日常のある一日」に静かに織り交ぜてください。"
+    );
   }
-
-  parts.push(`今日のユーザーの気持ち・出来事:\n${userEntry}`);
-  parts.push("今日の陽菜の章を書いてください。");
 
   return parts.join("\n\n");
 }
