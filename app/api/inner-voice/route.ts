@@ -1,8 +1,8 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { innerVoiceSystemPrompt } from "@/lib/innerVoicePrompt";
 import { NextRequest } from "next/server";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+const client = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
 
 export async function POST(req: NextRequest) {
   const { userEntry } = await req.json();
@@ -11,13 +11,12 @@ export async function POST(req: NextRequest) {
     return new Response("Missing userEntry", { status: 400 });
   }
 
-  const model = genAI.getGenerativeModel({
-    model: "gemini-3-flash",
-    systemInstruction: innerVoiceSystemPrompt,
-  });
-
   try {
-    const result = await model.generateContentStream(userEntry);
+    const result = await client.models.generateContentStream({
+      model: "gemini-3-flash-preview",
+      system_instruction: innerVoiceSystemPrompt,
+      contents: [{ role: "user", parts: [{ text: userEntry }] }],
+    });
 
     const readable = new ReadableStream({
       async start(controller) {
@@ -43,8 +42,8 @@ export async function POST(req: NextRequest) {
         "Cache-Control": "no-cache",
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API error in inner-voice:", error);
-    return new Response("Failed to generate inner voice", { status: 500 });
+    return new Response(`Failed to generate inner voice: ${error.message}`, { status: 500 });
   }
 }

@@ -1,11 +1,11 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import {
   parallelStorySystemPrompt,
   buildParallelStoryUserMessage,
 } from "@/lib/parallelStoryPrompt";
 import { NextRequest } from "next/server";
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
+const client = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
 
 export async function POST(req: NextRequest) {
   const { userEntry, storySummary } = await req.json();
@@ -19,13 +19,12 @@ export async function POST(req: NextRequest) {
     storySummary || ""
   );
 
-  const model = genAI.getGenerativeModel({
-    model: "gemini-3-flash",
-    systemInstruction: parallelStorySystemPrompt,
-  });
-
   try {
-    const result = await model.generateContentStream(userMessage);
+    const result = await client.models.generateContentStream({
+      model: "gemini-3-flash-preview",
+      system_instruction: parallelStorySystemPrompt,
+      contents: [{ role: "user", parts: [{ text: userMessage }] }],
+    });
 
     const readable = new ReadableStream({
       async start(controller) {
@@ -37,7 +36,7 @@ export async function POST(req: NextRequest) {
             }
           }
         } catch (streamError) {
-          console.error("Stream reading error:", streamError);
+          console.error("Stream reading error in parallel-story:", streamError);
           controller.enqueue(new TextEncoder().encode("\n[物語の生成中にエラーが発生しました。]"));
         } finally {
           controller.close();
@@ -51,8 +50,8 @@ export async function POST(req: NextRequest) {
         "Cache-Control": "no-cache",
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API error in parallel-story:", error);
-    return new Response("Failed to generate story", { status: 500 });
+    return new Response(`Failed to generate story: ${error.message}`, { status: 500 });
   }
 }
