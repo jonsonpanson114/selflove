@@ -72,33 +72,44 @@ export default function Home() {
   const { chapters, saveChapter, getStorySummary, getRenStorySummary, getNextChapterNumber, loaded } =
     useChapters();
 
+  // 1. Initial mounting and prompt initialization
   useEffect(() => {
     setMounted(true);
     setPromptIndex(getRandomPromptIndex());
   }, []);
 
-  // 通知チェック: 今日まだ書いていない場合に通知を表示
+  // 2. Notification handling - only after mount and data loaded
   useEffect(() => {
-    if (!loaded) return;
-    const today = new Date().toISOString().split("T")[0];
-    const hasTodayEntry = chapters.some((c) => c.date === today);
+    if (!mounted || !loaded) return;
+    
+    const todayStr = new Date().toISOString().split("T")[0];
+    const hasTodayEntry = chapters.some((c) => c.date === todayStr);
     const settings = getNotifSettings();
+    
     if (shouldShowNotification(settings, hasTodayEntry)) {
-      new Notification("selflove", {
-        body: "今日の一ページを書いてみませんか？",
-        icon: "/icons/icon-192.png",
-      });
+      try {
+        const NotificationAPI = (window as any).Notification;
+        if (NotificationAPI && NotificationAPI.permission === "granted") {
+          new NotificationAPI("selflove", {
+            body: "今日の一ページを書いてみませんか？",
+            icon: "/icons/icon-192.png",
+          });
+        }
+      } catch (err) {
+        console.warn("Notification failed:", err);
+      }
     }
-  }, [loaded, chapters]);
+  }, [mounted, loaded, chapters]);
 
   const today = new Date();
+  // Ensure these are stable during SSR/initial hydration
   const dateStr = mounted ? today.toLocaleDateString("ja-JP", {
     year: "numeric",
     month: "long",
     day: "numeric",
     weekday: "short",
   }) : "";
-  const chapterNumber = loaded ? getNextChapterNumber() : "—";
+  const chapterNumber = (mounted && loaded) ? getNextChapterNumber() : "—";
   const affirmation = mounted ? getTodayAffirmation() : "";
   const greeting = mounted ? getGreeting() : "";
   const isLoading = isLoadingVoice || isLoadingStory || isLoadingRenStory;

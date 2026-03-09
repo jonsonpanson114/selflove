@@ -34,8 +34,12 @@ export function shouldShowNotification(
   hasTodayEntry: boolean
 ): boolean {
   if (!settings.enabled || hasTodayEntry) return false;
-  if (typeof Notification === "undefined") return false;
-  if (Notification.permission !== "granted") return false;
+  if (typeof window === "undefined") return false;
+  
+  // Safe check for Notification API existence in different environments
+  const NotificationAPI = (window as any).Notification;
+  if (!NotificationAPI) return false;
+  if (NotificationAPI.permission !== "granted") return false;
 
   const now = new Date();
   const [h, m] = settings.time.split(":").map(Number);
