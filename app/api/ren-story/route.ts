@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
 
     try {
         const model = genAI.getGenerativeModel({
-            model: "gemini-3.1-flash",
+            model: "gemini-3-flash",
             systemInstruction: renStorySystemPrompt,
             safetySettings: [
                 {
