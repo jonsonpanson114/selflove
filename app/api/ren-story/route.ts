@@ -24,6 +24,8 @@ export async function POST(req: NextRequest) {
             storySummary || ""
         );
 
+        console.log(`[API ren-story] Starting generation with model gemini-3-flash-preview. API Key: ${apiKey.slice(0, 4)}...`);
+
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel(
             {
@@ -43,19 +45,24 @@ export async function POST(req: NextRequest) {
 
         const readable = new ReadableStream({
             async start(controller) {
+                let chunkCount = 0;
+                let totalTextLength = 0;
                 try {
                     for await (const chunk of result.stream) {
                         try {
                             const text = chunk.text();
                             if (text) {
+                                chunkCount++;
+                                totalTextLength += text.length;
                                 controller.enqueue(new TextEncoder().encode(text));
                             }
                         } catch (chunkError: any) {
-                            console.error("Chunk error (safety?):", chunkError.message);
+                            console.error(`[API ren-story] Chunk error (safety?): ${chunkError.message}`);
                         }
                     }
+                    console.log(`[API ren-story] Completed. Chunks: ${chunkCount}, Total Length: ${totalTextLength}`);
                 } catch (streamError: any) {
-                    console.error("Stream reading error in ren-story:", streamError);
+                    console.error(`[API ren-story] Stream reading error: ${streamError.message}`);
                     const msg = streamError.message?.includes("SAFETY") 
                         ? "\n[安全フィルターにより内容が制限されました。]" 
                         : "\n[物語の生成中にエラーが発生しました。]";
@@ -73,7 +80,7 @@ export async function POST(req: NextRequest) {
             },
         });
     } catch (error: any) {
-        console.error("Gemini API error in ren-story:", error);
+        console.error(`[API ren-story] Top-level error: ${error.message}`);
         return new Response(`Failed to generate ren story: ${error.message}`, { status: 500 });
     }
 }

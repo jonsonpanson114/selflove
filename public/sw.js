@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selflove-v2';
+const CACHE_NAME = 'selflove-v4';
 
 // Assets to pre-cache on install
 const PRECACHE_ASSETS = [
