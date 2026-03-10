@@ -1,11 +1,9 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
     renStorySystemPrompt,
     buildRenStoryUserMessage,
 } from "@/lib/renStoryPrompt";
 import { NextRequest } from "next/server";
-
-const client = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
 
 export async function POST(req: NextRequest) {
     const { userEntry, storySummary } = await req.json();
@@ -14,44 +12,31 @@ export async function POST(req: NextRequest) {
         return new Response("Missing userEntry", { status: 400 });
     }
 
+    const apiKey = process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+        return new Response("API Key missing", { status: 500 });
+    }
+
     const userMessage = buildRenStoryUserMessage(
         userEntry,
         storySummary || ""
     );
 
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+        model: "gemini-3-flash-preview",
+        systemInstruction: renStorySystemPrompt,
+    });
+
     try {
-        const result = await client.models.generateContentStream({
-            model: "gemini-3-flash-preview",
-            contents: [{ role: "user", parts: [{ text: userMessage }] }],
-            config: {
-                systemInstruction: renStorySystemPrompt,
-                safetySettings: [
-                    {
-                        category: "HARM_CATEGORY_HARASSMENT" as any,
-                        threshold: "BLOCK_NONE" as any,
-                    },
-                    {
-                        category: "HARM_CATEGORY_HATE_SPEECH" as any,
-                        threshold: "BLOCK_NONE" as any,
-                    },
-                    {
-                        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT" as any,
-                        threshold: "BLOCK_NONE" as any,
-                    },
-                    {
-                        category: "HARM_CATEGORY_DANGEROUS_CONTENT" as any,
-                        threshold: "BLOCK_NONE" as any,
-                    },
-                ],
-            },
-        });
+        const result = await model.generateContentStream(userMessage);
 
         const readable = new ReadableStream({
             async start(controller) {
                 try {
-                    for await (const chunk of result) {
+                    for await (const chunk of result.stream) {
                         try {
-                            const text = chunk.text;
+                            const text = chunk.text();
                             if (text) {
                                 controller.enqueue(new TextEncoder().encode(text));
                             }

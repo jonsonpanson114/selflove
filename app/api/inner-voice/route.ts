@@ -1,8 +1,6 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { innerVoiceSystemPrompt } from "@/lib/innerVoicePrompt";
 import { NextRequest } from "next/server";
-
-const client = new GoogleGenAI({ apiKey: process.env.GOOGLE_API_KEY });
 
 export async function POST(req: NextRequest) {
   const { userEntry } = await req.json();
@@ -11,20 +9,25 @@ export async function POST(req: NextRequest) {
     return new Response("Missing userEntry", { status: 400 });
   }
 
+  const apiKey = process.env.GOOGLE_API_KEY;
+  if (!apiKey) {
+    return new Response("API Key missing", { status: 500 });
+  }
+
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model = genAI.getGenerativeModel({
+    model: "gemini-3-flash-preview",
+    systemInstruction: innerVoiceSystemPrompt,
+  });
+
   try {
-    const result = await client.models.generateContentStream({
-      model: "gemini-3-flash-preview",
-      contents: [{ role: "user", parts: [{ text: userEntry }] }],
-      config: {
-        systemInstruction: innerVoiceSystemPrompt,
-      },
-    });
+    const result = await model.generateContentStream(userEntry);
 
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of result) {
-            const text = chunk.text;
+          for await (const chunk of result.stream) {
+            const text = chunk.text();
             if (text) {
               controller.enqueue(new TextEncoder().encode(text));
             }
