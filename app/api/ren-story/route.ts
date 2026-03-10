@@ -22,25 +22,25 @@ export async function POST(req: NextRequest) {
     try {
         const result = await client.models.generateContentStream({
             model: "gemini-3-flash-preview",
-            system_instruction: renStorySystemPrompt,
             contents: [{ role: "user", parts: [{ text: userMessage }] }],
             config: {
-                safety_settings: [
+                systemInstruction: renStorySystemPrompt,
+                safetySettings: [
                     {
-                        category: "HARM_CATEGORY_HARASSMENT",
-                        threshold: "BLOCK_NONE",
+                        category: "HARM_CATEGORY_HARASSMENT" as any,
+                        threshold: "BLOCK_NONE" as any,
                     },
                     {
-                        category: "HARM_CATEGORY_HATE_SPEECH",
-                        threshold: "BLOCK_NONE",
+                        category: "HARM_CATEGORY_HATE_SPEECH" as any,
+                        threshold: "BLOCK_NONE" as any,
                     },
                     {
-                        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-                        threshold: "BLOCK_NONE",
+                        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT" as any,
+                        threshold: "BLOCK_NONE" as any,
                     },
                     {
-                        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-                        threshold: "BLOCK_NONE",
+                        category: "HARM_CATEGORY_DANGEROUS_CONTENT" as any,
+                        threshold: "BLOCK_NONE" as any,
                     },
                 ],
             },
@@ -49,9 +49,9 @@ export async function POST(req: NextRequest) {
         const readable = new ReadableStream({
             async start(controller) {
                 try {
-                    for await (const chunk of result.stream) {
+                    for await (const chunk of result) {
                         try {
-                            const text = chunk.text();
+                            const text = chunk.text;
                             if (text) {
                                 controller.enqueue(new TextEncoder().encode(text));
                             }

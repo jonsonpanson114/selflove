@@ -22,15 +22,17 @@ export async function POST(req: NextRequest) {
   try {
     const result = await client.models.generateContentStream({
       model: "gemini-3-flash-preview",
-      system_instruction: parallelStorySystemPrompt,
       contents: [{ role: "user", parts: [{ text: userMessage }] }],
+      config: {
+        systemInstruction: parallelStorySystemPrompt,
+      },
     });
 
     const readable = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of result.stream) {
-            const text = chunk.text();
+          for await (const chunk of result) {
+            const text = chunk.text;
             if (text) {
               controller.enqueue(new TextEncoder().encode(text));
             }
