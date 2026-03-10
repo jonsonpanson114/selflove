@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 import {
     renStorySystemPrompt,
     buildRenStoryUserMessage,
@@ -6,29 +6,39 @@ import {
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
-    const { userEntry, storySummary } = await req.json();
-
-    if (!userEntry || typeof userEntry !== "string") {
-        return new Response("Missing userEntry", { status: 400 });
-    }
-
-    const apiKey = process.env.GOOGLE_API_KEY;
-    if (!apiKey) {
-        return new Response("API Key missing", { status: 500 });
-    }
-
-    const userMessage = buildRenStoryUserMessage(
-        userEntry,
-        storySummary || ""
-    );
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-        model: "gemini-3-flash-preview",
-        systemInstruction: renStorySystemPrompt,
-    });
-
     try {
+        const { userEntry, storySummary } = await req.json();
+
+        if (!userEntry || typeof userEntry !== "string") {
+            return new Response("Missing userEntry", { status: 400 });
+        }
+
+        const apiKey = process.env.GOOGLE_API_KEY;
+        if (!apiKey) {
+            console.error("GOOGLE_API_KEY is not defined in environment variables");
+            return new Response("API Key setup error", { status: 500 });
+        }
+
+        const userMessage = buildRenStoryUserMessage(
+            userEntry,
+            storySummary || ""
+        );
+
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel(
+            {
+                model: "gemini-3-flash-preview",
+                systemInstruction: renStorySystemPrompt,
+                safetySettings: [
+                    { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                    { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+                ],
+            },
+            { apiVersion: "v1beta" }
+        );
+
         const result = await model.generateContentStream(userMessage);
 
         const readable = new ReadableStream({
@@ -44,9 +54,12 @@ export async function POST(req: NextRequest) {
                             console.error("Chunk error (safety?):", chunkError.message);
                         }
                     }
-                } catch (streamError) {
+                } catch (streamError: any) {
                     console.error("Stream reading error in ren-story:", streamError);
-                    controller.enqueue(new TextEncoder().encode("\n[物語の生成中にエラーが発生しました。]"));
+                    const msg = streamError.message?.includes("SAFETY") 
+                        ? "\n[安全フィルターにより内容が制限されました。]" 
+                        : "\n[物語の生成中にエラーが発生しました。]";
+                    controller.enqueue(new TextEncoder().encode(msg));
                 } finally {
                     controller.close();
                 }

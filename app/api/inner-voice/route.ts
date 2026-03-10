@@ -1,26 +1,37 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 import { innerVoiceSystemPrompt } from "@/lib/innerVoicePrompt";
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const { userEntry } = await req.json();
-
-  if (!userEntry || typeof userEntry !== "string") {
-    return new Response("Missing userEntry", { status: 400 });
-  }
-
-  const apiKey = process.env.GOOGLE_API_KEY;
-  if (!apiKey) {
-    return new Response("API Key missing", { status: 500 });
-  }
-
-  const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: "gemini-3-flash-preview",
-    systemInstruction: innerVoiceSystemPrompt,
-  });
-
   try {
+    const { userEntry } = await req.json();
+
+    if (!userEntry || typeof userEntry !== "string") {
+      return new Response("Missing userEntry", { status: 400 });
+    }
+
+    const apiKey = process.env.GOOGLE_API_KEY;
+    if (!apiKey) {
+      console.error("GOOGLE_API_KEY is not defined in environment variables");
+      return new Response("API Key setup error", { status: 500 });
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    // Use v1beta for preview models like gemini-3-flash-preview
+    const model = genAI.getGenerativeModel(
+      {
+        model: "gemini-3-flash-preview",
+        systemInstruction: innerVoiceSystemPrompt,
+        safetySettings: [
+          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        ],
+      },
+      { apiVersion: "v1beta" }
+    );
+
     const result = await model.generateContentStream(userEntry);
 
     const readable = new ReadableStream({
@@ -32,9 +43,12 @@ export async function POST(req: NextRequest) {
               controller.enqueue(new TextEncoder().encode(text));
             }
           }
-        } catch (streamError) {
+        } catch (streamError: any) {
           console.error("Stream reading error in inner-voice:", streamError);
-          controller.enqueue(new TextEncoder().encode("\n[応答の生成中にエラーが発生しました。]"));
+          const msg = streamError.message?.includes("SAFETY") 
+            ? "\n[安全フィルターにより内容が制限されました。]" 
+            : "\n[応答の生成中にエラーが発生しました。]";
+          controller.enqueue(new TextEncoder().encode(msg));
         } finally {
           controller.close();
         }
