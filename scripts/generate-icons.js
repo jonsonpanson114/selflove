@@ -68,58 +68,63 @@ function createPNG(size, drawPixel) {
   return Buffer.concat([sig, ihdr, idat, iend]);
 }
 
-// --- Icon design ---
-// Sage green background with concentric circles (cream > gold > cream center)
-// matching the SVG aesthetic
-function drawIcon(x, y, size) {
-  const cx = size / 2;
-  const cy = size / 2;
-  const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+// --- Icon design: Orbital Rosette ---
+// Sage green background with 6-circle rosette pattern in gold
+const SAGE  = [74, 103, 65];
+const GOLD  = [196, 169, 106];
+const SAGE_LIGHT = [92, 120, 82];
 
-  // Colors (RGB)
-  const SAGE   = [74, 103, 65];
-  const CREAM  = [245, 240, 232];
-  const GOLD   = [196, 169, 106];
-  const BORDER = [180, 168, 148]; // slightly darker cream for ring
-
-  // Radii (relative to size)
-  const CENTER_DOT  = size * 0.065;
-  const GOLD_RING   = size * 0.135;
-  const RING_LINE   = size * 0.415;
-  const RING_WIDTH  = size * 0.012;
-  const CREAM_CIRCLE = size * 0.44;
-
-  if (dist < CENTER_DOT)  return CREAM;
-  if (dist < GOLD_RING)   return GOLD;
-  if (Math.abs(dist - RING_LINE) < RING_WIDTH) return BORDER;
-  if (dist < CREAM_CIRCLE) return SAGE;
-  return CREAM; // outer cream background (for non-maskable appearance)
+// Check if point (px, py) is near the edge of a circle centered at (cx, cy) with radius r
+function nearCircle(px, py, cx, cy, r, width) {
+  const d = Math.sqrt((px - cx) ** 2 + (py - cy) ** 2);
+  return Math.abs(d - r) < width;
 }
 
-// Maskable version: full sage green bleed, content centered in safe zone (80% diameter)
-function drawIconMaskable(x, y, size) {
+function drawRosette(x, y, size, maskable) {
   const cx = size / 2;
   const cy = size / 2;
-  const dist = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+  const R = size * 0.25;         // rosette circle radius
+  const LINE_W = size * 0.008;   // line thickness
+  const OUTER_R = size * 0.375;  // outer boundary ring
+  const OUTER_W = size * 0.005;
+  const CENTER_DOT = size * 0.025;
+  const CLIP_R = maskable ? size * 0.5 : size * 0.44;
 
-  const SAGE   = [74, 103, 65];
-  const CREAM  = [245, 240, 232];
-  const GOLD   = [196, 169, 106];
-  const BORDER = [100, 130, 90]; // darker sage for ring on sage bg
+  const distFromCenter = Math.sqrt((x - cx) ** 2 + (y - cy) ** 2);
+  if (distFromCenter > CLIP_R) return maskable ? SAGE : [245, 240, 232]; // bg
 
-  // Safe zone = 80% of icon width = radius 40%
-  // Design elements fit within 36% radius
-  const CENTER_DOT   = size * 0.055;
-  const GOLD_RING    = size * 0.115;
-  const RING_LINE    = size * 0.32;
-  const RING_WIDTH   = size * 0.01;
-  const CREAM_CIRCLE = size * 0.35;
+  // 6 satellite centers for the rosette
+  const satellites = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (Math.PI / 3) * i;
+    satellites.push([cx + R * Math.cos(angle), cy + R * Math.sin(angle)]);
+  }
 
-  if (dist < CENTER_DOT)  return CREAM;
-  if (dist < GOLD_RING)   return GOLD;
-  if (Math.abs(dist - RING_LINE) < RING_WIDTH) return BORDER;
-  if (dist < CREAM_CIRCLE) return [...SAGE.map((c) => Math.min(255, c + 18))]; // lighter sage inside
-  return SAGE; // full sage background
+  // Center gold dot
+  if (distFromCenter < CENTER_DOT) return [238, 210, 150]; // bright gold center
+
+  // Check if near any rosette circle
+  for (const [scx, scy] of satellites) {
+    if (nearCircle(x, y, scx, scy, R, LINE_W)) {
+      const t = Math.min(1, (LINE_W - Math.abs(Math.sqrt((x - scx) ** 2 + (y - scy) ** 2) - R)) / LINE_W);
+      return GOLD.map((c) => Math.round(c * (0.7 + 0.3 * t)));
+    }
+  }
+
+  // Outer ring
+  if (nearCircle(x, y, cx, cy, OUTER_R, OUTER_W)) {
+    return GOLD.map((c) => Math.round(c * 0.65));
+  }
+
+  return SAGE;
+}
+
+function drawIcon(x, y, size) {
+  return drawRosette(x, y, size, false);
+}
+
+function drawIconMaskable(x, y, size) {
+  return drawRosette(x, y, size, true);
 }
 
 // --- Generate icons ---
