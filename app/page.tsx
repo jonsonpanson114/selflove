@@ -65,6 +65,7 @@ export default function Home() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedEntry, setSubmittedEntry] = useState("");
   const [submittedMood, setSubmittedMood] = useState<number | null>(null);
+  const [currentRelic, setCurrentRelic] = useState<{ name: string; description: string } | null>(null);
   const [error, setError] = useState("");
   const [promptIndex, setPromptIndex] = useState(0); // Server uses 0
   const [mounted, setMounted] = useState(false);
@@ -170,14 +171,33 @@ export default function Home() {
 
       // 少なくとも1つ成功していれば保存
       if (voiceData || storyData || renData) {
+        // 遺物（Relic）の抽出
+        let relicName = "";
+        let relicDesc = "";
+        const relicMatch = renData.match(/relic:\s*(.+?)\s*\/\s*description:\s*(.+)$/im);
+        let finalRenData = renData;
+        
+        if (relicMatch) {
+          relicName = relicMatch[1].trim();
+          relicDesc = relicMatch[2].trim();
+          // 表示用のテキストからは遺物情報を削除
+          finalRenData = renData.replace(/relic:\s*.+$/im, "").trim();
+        }
+
         saveChapter({
           date: now.toISOString().split("T")[0],
           userEntry: entryText,
           innerVoice: voiceData || "（生成に失敗しました）",
           parallelStory: storyData || "（生成に失敗しました）",
-          renStory: renData,
+          renStory: finalRenData,
           mood: mood ?? undefined,
+          relic: relicName || undefined,
+          relicDescription: relicDesc || undefined,
         });
+
+        if (relicName) {
+          setCurrentRelic({ name: relicName, description: relicDesc });
+        }
       }
 
       if (failedItems.length > 0) {
@@ -206,6 +226,7 @@ export default function Home() {
     setRenStory("");
     setSubmittedEntry("");
     setSubmittedMood(null);
+    setCurrentRelic(null);
     setError("");
     setPromptIndex(getRandomPromptIndex());
   };
@@ -462,12 +483,28 @@ export default function Home() {
               id: "ren-story",
               label: "遠い星の話",
               content: (
-                <InnerVoiceResponse
-                  text={renStory}
-                  isLoading={isLoadingRenStory}
-                  label="レンの物語"
-                  isStory={true}
-                />
+                <div>
+                  <InnerVoiceResponse
+                    text={renStory}
+                    isLoading={isLoadingRenStory}
+                    label="レンの物語"
+                    isStory={true}
+                  />
+                  {currentRelic && !isLoadingRenStory && (
+                    <div style={{
+                      marginTop: "1.5rem",
+                      padding: "1rem",
+                      background: "rgba(196, 169, 106, 0.1)",
+                      border: "1px dashed var(--gold)",
+                      borderRadius: "8px",
+                      textAlign: "center"
+                    }}>
+                      <p style={{ fontSize: "0.7rem", color: "var(--gold)", marginBottom: "0.5rem", letterSpacing: "0.1em" }}>遺物が見つかりました</p>
+                      <p style={{ fontSize: "0.9rem", fontWeight: "bold", color: "var(--ink)", marginBottom: "0.2rem" }}>{currentRelic.name}</p>
+                      <p style={{ fontSize: "0.75rem", color: "var(--ink)", opacity: 0.6 }}>{currentRelic.description}</p>
+                    </div>
+                  )}
+                </div>
               ),
             },
           ]}
