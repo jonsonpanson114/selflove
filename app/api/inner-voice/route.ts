@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     // Use v1beta for preview models like gemini-3-flash-preview
     const model = genAI.getGenerativeModel(
       {
-        model: "gemini-3.1-flash",
+        model: "gemini-3-flash-preview",
         systemInstruction: innerVoiceSystemPrompt,
         safetySettings: [
           { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
