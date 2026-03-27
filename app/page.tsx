@@ -5,7 +5,6 @@ import Link from "next/link";
 import BookPage from "@/components/BookPage";
 import StoryTabs from "@/components/StoryTabs";
 import InnerVoiceResponse from "@/components/InnerVoiceResponse";
-import NotificationSettings from "@/components/NotificationSettings";
 import { useChapters } from "@/hooks/useChapters";
 import { getTodayAffirmation, getGreeting } from "@/lib/affirmations";
 import {
@@ -66,6 +65,8 @@ export default function Home() {
   const [error, setError] = useState("");
   const [promptIndex, setPromptIndex] = useState(0); // Server uses 0
   const [mounted, setMounted] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<string>("default");
+  const [showNotifBanner, setShowNotifBanner] = useState(false);
 
   const { chapters, saveChapter, getStorySummary, getRenStorySummary, getNextChapterNumber, loaded } =
     useChapters();
@@ -74,7 +75,41 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     setPromptIndex(getRandomPromptIndex());
+    
+    if ("Notification" in window) {
+      setNotifPermission(Notification.permission);
+      if (Notification.permission === "default") {
+        setShowNotifBanner(true);
+      }
+    }
   }, []);
+
+  const handleRequestNotif = async () => {
+    if ("Notification" in window) {
+      const result = await Notification.requestPermission();
+      setNotifPermission(result);
+      if (result === "granted") {
+        setShowNotifBanner(false);
+        // Basic scheduling logic
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.ready.then((reg) => {
+            const now = new Date();
+            const sched = new Date();
+            sched.setHours(22, 30, 0, 0);
+            if (sched <= now) sched.setDate(sched.getDate() + 1);
+            
+            setTimeout(() => {
+              reg.showNotification("selflove: 新しい物語", {
+                body: "レン「やれやれ、新しい物語を書き始めたよ。君の今日の話を聞かせてくれないか？」",
+                icon: "/icons/icon-192.png",
+                tag: "daily-reminder",
+              });
+            }, sched.getTime() - now.getTime());
+          });
+        }
+      }
+    }
+  };
 
 
 
@@ -209,7 +244,29 @@ export default function Home() {
 
   return (
     <BookPage isPulsing={isLoading}>
-      <NotificationSettings />
+      {showNotifBanner && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 99999,
+          backgroundColor: "#4A6741",
+          color: "white",
+          padding: "1rem",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: "0.5rem",
+          boxShadow: "0 4px 10px rgba(0,0,0,0.3)"
+        }}>
+          <div style={{ fontSize: "0.9rem", fontWeight: "bold" }}>🔔 夜10時半の通知をオンにしますか？</div>
+          <div style={{ display: "flex", gap: "1rem" }}>
+            <button onClick={() => setShowNotifBanner(false)} style={{ background: "none", border: "1px solid white", color: "white", padding: "0.4rem 1rem", borderRadius: "4px" }}>あとで</button>
+            <button onClick={handleRequestNotif} style={{ background: "white", border: "none", color: "#4A6741", padding: "0.4rem 1rem", borderRadius: "4px", fontWeight: "bold" }}>オンにする</button>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div
         style={{
