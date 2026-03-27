@@ -5,6 +5,7 @@ import Link from "next/link";
 import BookPage from "@/components/BookPage";
 import StoryTabs from "@/components/StoryTabs";
 import InnerVoiceResponse from "@/components/InnerVoiceResponse";
+import NotificationSettings from "@/components/NotificationSettings";
 import { useChapters } from "@/hooks/useChapters";
 import { getTodayAffirmation, getGreeting } from "@/lib/affirmations";
 import {
@@ -233,6 +234,7 @@ export default function Home() {
 
   return (
     <BookPage isPulsing={isLoading}>
+      <NotificationSettings />
       {/* Header */}
       <div
         style={{
