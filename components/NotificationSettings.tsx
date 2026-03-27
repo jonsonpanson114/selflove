@@ -10,13 +10,14 @@ export default function NotificationSettings() {
   useEffect(() => {
     if ("Notification" in window) {
       setPermission(Notification.permission);
-      // If permission is not denied but not granted, show a gentle prompt after a delay
-      const timer = setTimeout(() => {
-        if (Notification.permission === "default") {
-          setIsPromptVisible(true);
-        }
-      }, 3000);
-      return () => clearTimeout(timer);
+      // FORCE VISIBLE for the user to see it now
+      setIsPromptVisible(true);
+      
+      // Still keep the logic to auto-hide if already granted
+      if (Notification.permission === "granted") {
+        setIsPromptVisible(false);
+        scheduleNotification();
+      }
     }
   }, []);
 

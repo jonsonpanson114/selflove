@@ -13,10 +13,6 @@ import {
   getRandomPromptIndex,
   getNextPromptIndex,
 } from "@/lib/writingPrompts";
-import {
-  getNotifSettings,
-  shouldShowNotification,
-} from "@/lib/notificationSettings";
 
 const MOOD_OPTIONS = [
   { value: 1, emoji: "😔", label: "辛い" },
@@ -80,28 +76,7 @@ export default function Home() {
     setPromptIndex(getRandomPromptIndex());
   }, []);
 
-  // 2. Notification handling - only after mount and data loaded
-  useEffect(() => {
-    if (!mounted || !loaded) return;
-    
-    const todayStr = new Date().toISOString().split("T")[0];
-    const hasTodayEntry = chapters.some((c) => c.date === todayStr);
-    const settings = getNotifSettings();
-    
-    if (shouldShowNotification(settings, hasTodayEntry)) {
-      try {
-        const NotificationAPI = (window as any).Notification;
-        if (NotificationAPI && NotificationAPI.permission === "granted") {
-          new NotificationAPI("selflove", {
-            body: "今日の一ページを書いてみませんか？",
-            icon: "/icons/icon-192.png",
-          });
-        }
-      } catch (err) {
-        console.warn("Notification failed:", err);
-      }
-    }
-  }, [mounted, loaded, chapters]);
+
 
   const today = new Date();
   // Ensure these are stable during SSR/initial hydration
