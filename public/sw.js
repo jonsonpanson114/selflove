@@ -11,6 +11,7 @@ const PRECACHE_ASSETS = [
   '/icons/icon-192.svg',
 ];
 
+// Install event
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
@@ -24,6 +25,7 @@ self.addEventListener('install', (event) => {
   );
 });
 
+// Activate event
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -38,6 +40,7 @@ self.addEventListener('activate', (event) => {
   console.log('[SW] Service Worker activated');
 });
 
+// Fetch event
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -72,7 +75,35 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Notification click handler
+// Push notification event
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push notification received');
+
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      console.error('[SW] Failed to parse push data:', e);
+      return;
+    }
+  }
+
+  const options = {
+    body: data.body || 'レン「新しい物語の時間ですよ」',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    vibrate: [200, 100, 200],
+    requireInteraction: true,
+    data: { url: '/' }
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'selflove', options)
+  );
+});
+
+// Notification click event
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
@@ -93,29 +124,3 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
-
-// Handle messages from clients
-self.addEventListener('message', (event) => {
-  console.log('[SW] Received message:', event.data);
-
-  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
-    showNotification(event.data.title, event.data.body);
-  }
-});
-
-// Show notification
-async function showNotification(title, body) {
-  try {
-    await self.registration.showNotification(title, {
-      body: body,
-      icon: "/icons/icon-192.png",
-      tag: "daily-reminder",
-      requireInteraction: true,
-      vibrate: [200, 100, 200],
-      data: { url: '/' }
-    });
-    console.log('[SW] Notification shown');
-  } catch (error) {
-    console.error('[SW] Notification error:', error);
-  }
-}
