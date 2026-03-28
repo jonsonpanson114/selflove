@@ -15,6 +15,15 @@ if (publicKey && privateKey) {
 }
 
 export async function POST(request: NextRequest) {
+  // 認証チェック
+  const authToken = request.headers.get('x-auth-token');
+  const validToken = process.env.PUSH_AUTH_TOKEN;
+
+  if (!validToken || authToken !== validToken) {
+    console.warn('[API] Unauthorized push attempt');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { title, body } = await request.json();
 
