@@ -90,21 +90,23 @@ export default function Home() {
       setNotifPermission(result);
       if (result === "granted") {
         setShowNotifBanner(false);
-        // Basic scheduling logic
+        // Service Worker will handle notifications automatically
+        console.log('[App] Notification permission granted, SW will handle scheduling');
+
+        // Wake up the service worker to start notification checking
         if ("serviceWorker" in navigator) {
           navigator.serviceWorker.ready.then((reg) => {
-            const now = new Date();
-            const sched = new Date();
-            sched.setHours(22, 30, 0, 0);
-            if (sched <= now) sched.setDate(sched.getDate() + 1);
-            
-            setTimeout(() => {
-              reg.showNotification("selflove: 新しい物語", {
-                body: "レン「やれやれ、新しい物語を書き始めたよ。君の今日の話を聞かせてくれないか？」",
+            // Send a message to SW to wake it up and start checking
+            reg.active?.postMessage({ type: 'START_NOTIFICATION_CHECK' });
+
+            // Test notification to confirm permission works
+            if (process.env.NODE_ENV === 'development') {
+              reg.showNotification("selflove: 通知テスト", {
+                body: "通知機能が有効になりました。毎日22:30に通知が届きます。",
                 icon: "/icons/icon-192.png",
-                tag: "daily-reminder",
+                tag: "test-notification",
               });
-            }, sched.getTime() - now.getTime());
+            }
           });
         }
       }

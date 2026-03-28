@@ -18,36 +18,13 @@ export default function NotificationSettings() {
       const result = await Notification.requestPermission();
       setPermission(result);
       if (result === "granted") {
-        scheduleNotification();
-      }
-    }
-  };
-
-  const scheduleNotification = () => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.ready.then((registration) => {
-        const now = new Date();
-        const scheduledTime = new Date();
-        scheduledTime.setHours(22, 30, 0, 0);
-
-        if (scheduledTime <= now) {
-          scheduledTime.setDate(scheduledTime.getDate() + 1);
+        // Service Worker will handle notification scheduling automatically
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.active?.postMessage({ type: 'START_NOTIFICATION_CHECK' });
+          });
         }
-
-        const delay = scheduledTime.getTime() - now.getTime();
-
-        setTimeout(() => {
-          const options = {
-            body: "レン「やれやれ、新しい物語を書き始めたよ。君の今日の話を聞かせてくれないか？」",
-            icon: "/icons/icon-192.png",
-            tag: "daily-reminder",
-            requireInteraction: true,
-            vibrate: [200, 100, 200]
-          };
-          registration.showNotification("selflove: 新しい物語", options);
-          scheduleNotification();
-        }, delay);
-      });
+      }
     }
   };
 
