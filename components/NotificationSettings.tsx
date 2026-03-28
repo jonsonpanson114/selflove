@@ -13,17 +13,49 @@ export default function NotificationSettings() {
     }
   }, []);
 
+  const checkAndScheduleNotification = () => {
+    if ("serviceWorker" in navigator && "Notification" in window && Notification.permission === "granted") {
+      const now = new Date();
+      const targetHour = 22;
+      const targetMinute = 30;
+
+      const currentTime = now.getHours() * 60 + now.getMinutes();
+      const targetTime = targetHour * 60 + targetMinute;
+
+      const today = now.toISOString().split('T')[0];
+      const lastNotif = localStorage.getItem('last-notification-date');
+
+      if (currentTime >= targetTime && lastNotif !== today) {
+        navigator.serviceWorker.ready.then((reg) => {
+          reg.active?.postMessage({
+            type: 'SHOW_NOTIFICATION',
+            title: "selflove: 新しい物語",
+            body: "レン「やれやれ、新しい物語を書き始めたよ。君の今日の話を聞かせてくれないか？」"
+          });
+          localStorage.setItem('last-notification-date', today);
+        });
+      }
+
+      const next = new Date();
+      next.setHours(targetHour, targetMinute, 0, 0);
+      if (next <= now) {
+        next.setDate(next.getDate() + 1);
+      }
+
+      const delay = next.getTime() - now.getTime();
+
+      setTimeout(() => {
+        checkAndScheduleNotification();
+      }, delay);
+    }
+  };
+
   const requestPermission = async () => {
     if ("Notification" in window) {
       const result = await Notification.requestPermission();
       setPermission(result);
       if (result === "granted") {
-        // Service Worker will handle notification scheduling automatically
-        if ("serviceWorker" in navigator) {
-          navigator.serviceWorker.ready.then((reg) => {
-            reg.active?.postMessage({ type: 'START_NOTIFICATION_CHECK' });
-          });
-        }
+        checkAndScheduleNotification();
       }
     }
   };

@@ -1,7 +1,4 @@
 const CACHE_NAME = 'selflove-v5';
-const NOTIFICATION_TIME = '22:30';
-const NOTIFICATION_DB = 'selflove-notifications';
-const NOTIFICATION_STORE = 'flags';
 
 // Assets to pre-cache on install
 const PRECACHE_ASSETS = [
@@ -14,102 +11,13 @@ const PRECACHE_ASSETS = [
   '/icons/icon-192.svg',
 ];
 
-// IndexedDB helper for notification flags
-const NotificationDB = {
-  async open() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(NOTIFICATION_DB, 1);
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (!db.objectStoreNames.contains(NOTIFICATION_STORE)) {
-          db.createObjectStore(NOTIFICATION_STORE);
-        }
-      };
-    });
-  },
-
-  async getLastNotificationDate() {
-    const db = await this.open();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(NOTIFICATION_STORE, 'readonly');
-      const store = transaction.objectStore(NOTIFICATION_STORE);
-      const request = store.get('lastNotification');
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  },
-
-  async setLastNotificationDate(date) {
-    const db = await this.open();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(NOTIFICATION_STORE, 'readwrite');
-      const store = transaction.objectStore(NOTIFICATION_STORE);
-      const request = store.put(date, 'lastNotification');
-      request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
-    });
-  }
-};
-
-// Check if notification should be shown
-async function checkAndShowNotification() {
-  try {
-    const now = new Date();
-    const [hours, minutes] = NOTIFICATION_TIME.split(':').map(Number);
-
-    // Check if current time is within the notification window (30 minutes)
-    const isInNotificationWindow =
-      now.getHours() === hours &&
-      now.getMinutes() >= minutes &&
-      now.getMinutes() < minutes + 30;
-
-    if (!isInNotificationWindow) {
-      return; // Not time yet
-    }
-
-    const today = now.toISOString().split('T')[0];
-    const lastNotification = await NotificationDB.getLastNotificationDate();
-
-    // Only show if we haven't notified today
-    if (lastNotification !== today) {
-      await self.registration.showNotification("selflove: 新しい物語", {
-        body: "レン「やれやれ、新しい物語を書き始めたよ。君の今日の話を聞かせてくれないか？」",
-        icon: "/icons/icon-192.png",
-        tag: "daily-reminder",
-        requireInteraction: true,
-        vibrate: [200, 100, 200],
-        data: {
-          url: '/'
-        }
-      });
-
-      await NotificationDB.setLastNotificationDate(today);
-      console.log('[SW] Notification sent for', today);
-    }
-  } catch (error) {
-    console.error('[SW] Notification check failed:', error);
-  }
-}
-
-// Start periodic notification check
-function startNotificationCheck() {
-  // Check every 30 seconds
-  setInterval(checkAndShowNotification, 30000);
-
-  // Also check immediately on SW activation
-  setTimeout(checkAndShowNotification, 1000);
-}
-
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // addAll fails if any request fails, so use individual adds
       return Promise.all(
         PRECACHE_ASSETS.map((url) =>
-          cache.add(url).catch(() => {}) // ignore individual failures
+          cache.add(url).catch(() => {})
         )
       );
     })
@@ -127,26 +35,17 @@ self.addEventListener('activate', (event) => {
     )
   );
   self.clients.claim();
-
-  // Start notification checking after activation
-  startNotificationCheck();
-  console.log('[SW] Service Worker activated and notification checking started');
+  console.log('[SW] Service Worker activated');
 });
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests
   if (request.method !== 'GET') return;
-
-  // Skip API routes — always network
   if (url.pathname.startsWith('/api/')) return;
-
-  // Skip cross-origin requests (fonts, etc.)
   if (url.origin !== self.location.origin) return;
 
-  // For HTML navigation: Network-first, fallback to cache
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
@@ -160,7 +59,6 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For static assets (JS, CSS, images): Cache-first, update in background
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) =>
       cache.match(request).then((cached) => {
@@ -174,16 +72,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// --- Notification Logic ---
-
-// Handle messages from clients
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'START_NOTIFICATION_CHECK') {
-    console.log('[SW] Received request to start notification check');
-    checkAndShowNotification(); // Check immediately
-  }
-});
-
+// Notification click handler
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
@@ -191,7 +80,6 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Focus existing window if available
       for (let i = 0; i < clientList.length; i++) {
         const client = clientList[i];
         if (client.url.includes(self.location.origin) && 'focus' in client) {
@@ -199,7 +87,6 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
 
-      // Open new window if no existing window
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }
@@ -207,3 +94,28 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
+// Handle messages from clients
+self.addEventListener('message', (event) => {
+  console.log('[SW] Received message:', event.data);
+
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    showNotification(event.data.title, event.data.body);
+  }
+});
+
+// Show notification
+async function showNotification(title, body) {
+  try {
+    await self.registration.showNotification(title, {
+      body: body,
+      icon: "/icons/icon-192.png",
+      tag: "daily-reminder",
+      requireInteraction: true,
+      vibrate: [200, 100, 200],
+      data: { url: '/' }
+    });
+    console.log('[SW] Notification shown');
+  } catch (error) {
+    console.error('[SW] Notification error:', error);
+  }
+}

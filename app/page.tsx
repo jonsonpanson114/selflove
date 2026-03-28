@@ -75,14 +75,59 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     setPromptIndex(getRandomPromptIndex());
-    
+
     if ("Notification" in window) {
       setNotifPermission(Notification.permission);
       if (Notification.permission === "default") {
         setShowNotifBanner(true);
+      } else if (Notification.permission === "granted") {
+        // Check and schedule notification on app open
+        checkAndScheduleNotification();
       }
     }
   }, []);
+
+  const checkAndScheduleNotification = () => {
+    if ("serviceWorker" in navigator && "Notification" in window && Notification.permission === "granted") {
+      const now = new Date();
+      const targetHour = 22;
+      const targetMinute = 30;
+
+      // Check if we're past 22:30 today
+      const currentTime = now.getHours() * 60 + now.getMinutes();
+      const targetTime = targetHour * 60 + targetMinute;
+
+      const today = now.toISOString().split('T')[0];
+      const lastNotif = localStorage.getItem('last-notification-date');
+
+      // If past 22:30 and haven't notified today, show immediately
+      if (currentTime >= targetTime && lastNotif !== today) {
+        navigator.serviceWorker.ready.then((reg) => {
+          reg.active?.postMessage({
+            type: 'SHOW_NOTIFICATION',
+            title: "selflove: 新しい物語",
+            body: "レン「やれやれ、新しい物語を書き始めたよ。君の今日の話を聞かせてくれないか？」"
+          });
+          localStorage.setItem('last-notification-date', today);
+          console.log('[App] Shown notification for today');
+        });
+      }
+
+      // Schedule next notification
+      const next = new Date();
+      next.setHours(targetHour, targetMinute, 0, 0);
+      if (next <= now) {
+        next.setDate(next.getDate() + 1);
+      }
+
+      const delay = next.getTime() - now.getTime();
+      console.log('[App] Scheduling next notification for', next.toLocaleString('ja-JP'), 'in', Math.round(delay / 1000 / 60), 'minutes');
+
+      setTimeout(() => {
+        checkAndScheduleNotification();
+      }, delay);
+    }
+  };
 
   const handleRequestNotif = async () => {
     if ("Notification" in window) {
@@ -90,23 +135,17 @@ export default function Home() {
       setNotifPermission(result);
       if (result === "granted") {
         setShowNotifBanner(false);
-        // Service Worker will handle notifications automatically
-        console.log('[App] Notification permission granted, SW will handle scheduling');
+        console.log('[App] Notification permission granted, scheduling notifications');
+        checkAndScheduleNotification();
 
-        // Wake up the service worker to start notification checking
-        if ("serviceWorker" in navigator) {
+        // Show test notification
+        if (process.env.NODE_ENV === 'development') {
           navigator.serviceWorker.ready.then((reg) => {
-            // Send a message to SW to wake it up and start checking
-            reg.active?.postMessage({ type: 'START_NOTIFICATION_CHECK' });
-
-            // Test notification to confirm permission works
-            if (process.env.NODE_ENV === 'development') {
-              reg.showNotification("selflove: 通知テスト", {
-                body: "通知機能が有効になりました。毎日22:30に通知が届きます。",
-                icon: "/icons/icon-192.png",
-                tag: "test-notification",
-              });
-            }
+            reg.showNotification("selflove: 通知テスト", {
+              body: "通知機能が有効になりました。毎日22:30に通知が届きます。",
+              icon: "/icons/icon-192.png",
+              tag: "test-notification",
+            });
           });
         }
       }
