@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selflove-v4';
+const CACHE_NAME = 'selflove-v5';
 
 // Assets to pre-cache on install
 const PRECACHE_ASSETS = [
@@ -12,6 +12,7 @@ const PRECACHE_ASSETS = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       // addAll fails if any request fails, so use individual adds
@@ -22,7 +23,6 @@ self.addEventListener('install', (event) => {
       );
     })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

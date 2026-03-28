@@ -250,20 +250,61 @@ export default function Home() {
           top: 0,
           left: 0,
           right: 0,
-          zIndex: 99999,
-          backgroundColor: "#4A6741",
-          color: "white",
-          padding: "1rem",
+          bottom: 0,
+          zIndex: 100000,
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+          backdropFilter: "blur(4px)",
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
-          gap: "0.5rem",
-          boxShadow: "0 4px 10px rgba(0,0,0,0.3)"
+          justifyContent: "center",
+          padding: "20px"
         }}>
-          <div style={{ fontSize: "0.9rem", fontWeight: "bold" }}>🔔 夜10時半の通知をオンにしますか？</div>
-          <div style={{ display: "flex", gap: "1rem" }}>
-            <button onClick={() => setShowNotifBanner(false)} style={{ background: "none", border: "1px solid white", color: "white", padding: "0.4rem 1rem", borderRadius: "4px" }}>あとで</button>
-            <button onClick={handleRequestNotif} style={{ background: "white", border: "none", color: "#4A6741", padding: "0.4rem 1rem", borderRadius: "4px", fontWeight: "bold" }}>オンにする</button>
+          <div style={{
+            backgroundColor: "#FDFAF4",
+            padding: "2rem",
+            borderRadius: "24px",
+            maxWidth: "340px",
+            width: "100%",
+            textAlign: "center",
+            boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+            border: "1px solid rgba(74, 103, 65, 0.2)"
+          }}>
+            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔔</div>
+            <h3 style={{ color: "#3D3328", marginBottom: "0.5rem", fontSize: "1.1rem" }}>夜の10時半に会いましょう</h3>
+            <p style={{ color: "#3D3328", opacity: 0.7, fontSize: "0.85rem", lineHeight: "1.5", marginBottom: "1.5rem" }}>
+              レン「新しい物語の準備を整えて待っているよ。通知を受け取れるようにしておいてくれないか？」
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <button
+                onClick={handleRequestNotif}
+                style={{
+                  backgroundColor: "#4A6741",
+                  color: "white",
+                  border: "none",
+                  padding: "0.8rem",
+                  borderRadius: "12px",
+                  fontWeight: "bold",
+                  fontSize: "0.9rem",
+                  cursor: "pointer"
+                }}
+              >
+                通知をオンにする
+              </button>
+              <button
+                onClick={() => setShowNotifBanner(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#3D3328",
+                  opacity: 0.5,
+                  padding: "0.5rem",
+                  fontSize: "0.8rem",
+                  cursor: "pointer"
+                }}
+              >
+                あとで
+              </button>
+            </div>
           </div>
         </div>
       )}
