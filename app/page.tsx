@@ -78,12 +78,17 @@ export default function Home() {
 
     if ("Notification" in window) {
       setNotifPermission(Notification.permission);
-      if (Notification.permission === "default") {
-        setShowNotifBanner(true);
-      } else if (Notification.permission === "granted") {
+
+      // DEBUG: Always show banner for testing
+      console.log('[App] Notification permission:', Notification.permission);
+      setShowNotifBanner(true);
+
+      if (Notification.permission === "granted") {
         // Check and schedule notification on app open
         checkAndScheduleNotification();
       }
+    } else {
+      console.log('[App] Notification API not available');
     }
   }, []);
 
