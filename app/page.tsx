@@ -5,6 +5,7 @@ import Link from "next/link";
 import BookPage from "@/components/BookPage";
 import StoryTabs from "@/components/StoryTabs";
 import InnerVoiceResponse from "@/components/InnerVoiceResponse";
+import { NotificationSettingsUI } from "@/components/NotificationSettingsUI";
 import { useChapters } from "@/hooks/useChapters";
 import { getTodayAffirmation, getGreeting } from "@/lib/affirmations";
 import {
@@ -57,19 +58,20 @@ export default function Home() {
   const [entry, setEntry] = useState("");
   const [mood, setMood] = useState<number | null>(null);
   const [innerVoice, setInnerVoice] = useState("");
-  const [story, setStory] = useState("");
-  const [renStory, setRenStory] = useState("");
+  const [haruStory, setHaruStory] = useState("");
+  const [soraStory, setSoraStory] = useState("");
   const [isLoadingVoice, setIsLoadingVoice] = useState(false);
-  const [isLoadingStory, setIsLoadingStory] = useState(false);
-  const [isLoadingRenStory, setIsLoadingRenStory] = useState(false);
+  const [isLoadingHaruStory, setIsLoadingHaruStory] = useState(false);
+  const [isLoadingSoraStory, setIsLoadingSoraStory] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedEntry, setSubmittedEntry] = useState("");
   const [submittedMood, setSubmittedMood] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [promptIndex, setPromptIndex] = useState(0); // Server uses 0
   const [mounted, setMounted] = useState(false);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
 
-  const { chapters, saveChapter, getStorySummary, getRenStorySummary, getNextChapterNumber, loaded } =
+  const { chapters, saveChapter, getHaruStorySummary, getSoraStorySummary, getNextChapterNumber, loaded } =
     useChapters();
 
   // 1. Initial mounting and prompt initialization
@@ -112,22 +114,22 @@ export default function Home() {
   const chapterNumber = (mounted && loaded) ? getNextChapterNumber() : "—";
   const affirmation = mounted ? getTodayAffirmation() : "";
   const greeting = mounted ? getGreeting() : "";
-  const isLoading = isLoadingVoice || isLoadingStory || isLoadingRenStory;
+  const isLoading = isLoadingVoice || isLoadingHaruStory || isLoadingSoraStory;
 
   const handleSubmit = async () => {
     if (!entry.trim() || isLoading) return;
 
     const entryText = entry.trim();
     const now = new Date();
-    const storySummary = getStorySummary();
-    const renStorySummary = getRenStorySummary();
+    const haruStorySummary = getHaruStorySummary();
+    const soraStorySummary = getSoraStorySummary();
 
     setIsLoadingVoice(true);
-    setIsLoadingStory(true);
-    setIsLoadingRenStory(true);
+    setIsLoadingHaruStory(true);
+    setIsLoadingSoraStory(true);
     setInnerVoice("");
-    setStory("");
-    setRenStory("");
+    setHaruStory("");
+    setSoraStory("");
     setIsSubmitted(true);
     setSubmittedEntry(entryText);
     setSubmittedMood(mood);
@@ -135,47 +137,47 @@ export default function Home() {
 
     try {
       // 個別に実行して、1つが失敗しても他は続行
-      const [voiceResult, storyResult, renStoryResult] = await Promise.allSettled([
+      const [voiceResult, haruStoryResult, soraStoryResult] = await Promise.allSettled([
         streamResponse(
           "/api/inner-voice",
           { userEntry: entryText },
           (chunk) => setInnerVoice((prev) => prev + chunk)
         ),
         streamResponse(
-          "/api/parallel-story",
-          { userEntry: entryText, storySummary },
-          (chunk) => setStory((prev) => prev + chunk)
+          "/api/haru-story",
+          { userEntry: entryText, storySummary: haruStorySummary },
+          (chunk) => setHaruStory((prev) => prev + chunk)
         ),
         streamResponse(
-          "/api/ren-story",
-          { userEntry: entryText, storySummary: renStorySummary },
-          (chunk) => setRenStory((prev) => prev + chunk)
+          "/api/sora-story",
+          { userEntry: entryText, storySummary: soraStorySummary },
+          (chunk) => setSoraStory((prev) => prev + chunk)
         ),
       ]);
 
       // 成功したものを取り出す
       const voiceData = voiceResult.status === "fulfilled" ? voiceResult.value : "";
-      const storyData = storyResult.status === "fulfilled" ? storyResult.value : "";
-      const renData = renStoryResult.status === "fulfilled" ? renStoryResult.value : "";
+      const haruData = haruStoryResult.status === "fulfilled" ? haruStoryResult.value : "";
+      const soraData = soraStoryResult.status === "fulfilled" ? soraStoryResult.value : "";
 
       // 失敗があればエラー表示
       const failedItems = [];
       if (voiceResult.status === "rejected") failedItems.push("内なる自分の声");
-      if (storyResult.status === "rejected") failedItems.push("陽菜の物語");
-      if (renStoryResult.status === "rejected") failedItems.push("レンの物語");
+      if (haruStoryResult.status === "rejected") failedItems.push("Haruの物語");
+      if (soraStoryResult.status === "rejected") failedItems.push("Soraの物語");
 
       setIsLoadingVoice(false);
-      setIsLoadingStory(false);
-      setIsLoadingRenStory(false);
+      setIsLoadingHaruStory(false);
+      setIsLoadingSoraStory(false);
 
       // 少なくとも1つ成功していれば保存
-      if (voiceData || storyData || renData) {
+      if (voiceData || haruData || soraData) {
         saveChapter({
           date: now.toISOString().split("T")[0],
           userEntry: entryText,
           innerVoice: voiceData || "（生成に失敗しました）",
-          parallelStory: storyData || "（生成に失敗しました）",
-          renStory: renData,
+          haruStory: haruData || "（生成に失敗しました）",
+          soraStory: soraData || "",
           mood: mood ?? undefined,
         });
       }
@@ -184,16 +186,16 @@ export default function Home() {
         // rejectedの場合はReasonからメッセージ取得を試みる
         const errorMsgs = [];
         if (voiceResult.status === "rejected") errorMsgs.push(`内なる自分の声 (${voiceResult.reason?.message || "不明なエラー"})`);
-        if (storyResult.status === "rejected") errorMsgs.push(`陽菜の物語 (${storyResult.reason?.message || "不明なエラー"})`);
-        if (renStoryResult.status === "rejected") errorMsgs.push(`レンの物語 (${renStoryResult.reason?.message || "不明なエラー"})`);
+        if (haruStoryResult.status === "rejected") errorMsgs.push(`Haruの物語 (${haruStoryResult.reason?.message || "不明なエラー"})`);
+        if (soraStoryResult.status === "rejected") errorMsgs.push(`Soraの物語 (${soraStoryResult.reason?.message || "不明なエラー"})`);
 
         setError(`${errorMsgs.join("、")} の生成に失敗しました。`);
       }
     } catch (e) {
       setError("通信エラーが発生しました。もう一度試してください。");
       setIsLoadingVoice(false);
-      setIsLoadingStory(false);
-      setIsLoadingRenStory(false);
+      setIsLoadingHaruStory(false);
+      setIsLoadingSoraStory(false);
     }
   };
 
@@ -202,8 +204,8 @@ export default function Home() {
     setEntry("");
     setMood(null);
     setInnerVoice("");
-    setStory("");
-    setRenStory("");
+    setHaruStory("");
+    setSoraStory("");
     setSubmittedEntry("");
     setSubmittedMood(null);
     setError("");
@@ -451,21 +453,21 @@ export default function Home() {
               label: "もうひとつの話",
               content: (
                 <InnerVoiceResponse
-                  text={story}
-                  isLoading={isLoadingStory}
-                  label="陽菜の物語"
+                  text={haruStory}
+                  isLoading={isLoadingHaruStory}
+                  label="Haruの物語"
                   isStory={true}
                 />
               ),
             },
             {
-              id: "ren-story",
+              id: "sora-story",
               label: "遠い星の話",
               content: (
                 <InnerVoiceResponse
-                  text={renStory}
-                  isLoading={isLoadingRenStory}
-                  label="レンの物語"
+                  text={soraStory}
+                  isLoading={isLoadingSoraStory}
+                  label="Soraの物語"
                   isStory={true}
                 />
               ),
@@ -555,6 +557,34 @@ export default function Home() {
         >
           過去の章へ →
         </Link>
+      </div>
+
+      {/* Notification Settings */}
+      <div style={{ marginTop: "3rem", textAlign: "center" }}>
+        <button
+          onClick={() => setShowNotificationSettings(!showNotificationSettings)}
+          style={{
+            background: "none",
+            border: "1px solid var(--border)",
+            borderRadius: "20px",
+            fontSize: "0.7rem",
+            color: "var(--ink)",
+            opacity: 0.5,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            letterSpacing: "0.05em",
+            padding: "0.4rem 1rem",
+            transition: "all 0.2s",
+          }}
+        >
+          {showNotificationSettings ? "設定を閉じる" : "通知設定を開く"}
+        </button>
+        
+        {showNotificationSettings && (
+          <div style={{ marginTop: "1.5rem" }}>
+            <NotificationSettingsUI />
+          </div>
+        )}
       </div>
     </BookPage>
   );

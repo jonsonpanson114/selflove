@@ -1,13 +1,13 @@
-export interface NotificationSettings {
-  enabled: boolean;
-  time: string; // "HH:MM" format, e.g. "21:00"
-}
+import { NotificationSettings } from "../types/notification";
+export type { NotificationSettings };
 
-const NOTIF_KEY = "selflove-notification-settings";
+const NOTIF_KEY = "selflove-notification-settings-v2";
 
 const DEFAULT_SETTINGS: NotificationSettings = {
   enabled: false,
-  time: "21:00",
+  morning: { enabled: true, hour: 8, minute: 0 },
+  evening: { enabled: true, hour: 21, minute: 0 },
+  permissionRequested: false,
 };
 
 export function getNotifSettings(): NotificationSettings {
@@ -22,6 +22,7 @@ export function getNotifSettings(): NotificationSettings {
 }
 
 export function saveNotifSettings(settings: NotificationSettings): void {
+  if (typeof window === "undefined") return;
   try {
     localStorage.setItem(NOTIF_KEY, JSON.stringify(settings));
   } catch {
@@ -29,6 +30,10 @@ export function saveNotifSettings(settings: NotificationSettings): void {
   }
 }
 
+/**
+ * @deprecated Use Web Push instead for background notifications.
+ * This is only kept for local immediate checks if needed.
+ */
 export function shouldShowNotification(
   settings: NotificationSettings,
   hasTodayEntry: boolean
@@ -36,15 +41,25 @@ export function shouldShowNotification(
   if (!settings.enabled || hasTodayEntry) return false;
   if (typeof window === "undefined") return false;
   
-  // Safe check for Notification API existence in different environments
   const NotificationAPI = (window as any).Notification;
   if (!NotificationAPI) return false;
   if (NotificationAPI.permission !== "granted") return false;
 
   const now = new Date();
-  const [h, m] = settings.time.split(":").map(Number);
-  const reminderTime = new Date();
-  reminderTime.setHours(h, m, 0, 0);
+  
+  // Morning check
+  if (settings.morning.enabled) {
+    const morningTime = new Date();
+    morningTime.setHours(settings.morning.hour, settings.morning.minute, 0, 0);
+    if (now >= morningTime && now.getHours() < 12) return true;
+  }
 
-  return now >= reminderTime;
+  // Evening check
+  if (settings.evening.enabled) {
+    const eveningTime = new Date();
+    eveningTime.setHours(settings.evening.hour, settings.evening.minute, 0, 0);
+    if (now >= eveningTime && now.getHours() >= 12) return true;
+  }
+
+  return false;
 }

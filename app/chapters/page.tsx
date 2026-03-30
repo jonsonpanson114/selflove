@@ -256,23 +256,23 @@ export default function ChaptersPage() {
                     label: "もうひとつの話",
                     content: (
                       <InnerVoiceResponse
-                        text={selectedChapter.parallelStory}
+                        text={selectedChapter.haruStory}
                         isLoading={false}
-                        label="陽菜の物語"
+                        label="Haruの物語"
                         isStory={true}
                       />
                     ),
                   },
-                  ...(selectedChapter.renStory
+                  ...(selectedChapter.soraStory
                     ? [
                       {
-                        id: "ren-story",
+                        id: "sora-story",
                         label: "遠い星の話",
                         content: (
                           <InnerVoiceResponse
-                            text={selectedChapter.renStory}
+                            text={selectedChapter.soraStory}
                             isLoading={false}
-                            label="レンの物語"
+                            label="Soraの物語"
                             isStory={true}
                           />
                         ),

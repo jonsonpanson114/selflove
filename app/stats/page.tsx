@@ -49,7 +49,9 @@ export default function StatsPage() {
   const { chapters, loaded } = useChapters();
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>({
     enabled: false,
-    time: "21:00",
+    morning: { enabled: true, hour: 8, minute: 0 },
+    evening: { enabled: true, hour: 21, minute: 0 },
+    permissionRequested: false,
   });
   const [notifPermission, setNotifPermission] = useState<NotificationPermission | "unsupported">("default");
 
@@ -80,7 +82,12 @@ export default function StatsPage() {
   };
 
   const handleTimeChange = (time: string) => {
-    const updated = { ...notifSettings, time };
+    const [hour, minute] = time.split(":").map(Number);
+    const updated = {
+      ...notifSettings,
+      evening: { ...notifSettings.evening, hour, minute },
+      morning: { ...notifSettings.morning, hour: 8, minute: 0 }, // 朝は固定または個別に設定が必要だが、現在のUIは1つ
+    };
     setNotifSettings(updated);
     saveNotifSettings(updated);
   };
@@ -469,7 +476,7 @@ export default function StatsPage() {
                         </p>
                         <input
                           type="time"
-                          value={notifSettings.time}
+                          value={`${String(notifSettings.evening.hour).padStart(2, "0")}:${String(notifSettings.evening.minute).padStart(2, "0")}`}
                           onChange={(e) => handleTimeChange(e.target.value)}
                           style={{
                             padding: "0.3rem 0.6rem",

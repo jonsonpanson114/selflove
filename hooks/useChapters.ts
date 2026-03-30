@@ -8,9 +8,8 @@ export interface Chapter {
   userEntry: string;
   mood?: number; // 1-5
   innerVoice: string;
-  parallelStory: string;
-  renStory?: string; // レン（第二のキャラクター）の物語
-  renStorySummary?: string;
+  haruStory: string; // ハル（会社員）の物語
+  soraStory: string; // ソラ（シングルマザー）の物語
   chapterNumber: number;
   createdAt: number; // Unix timestamp
 }
@@ -25,7 +24,14 @@ export function useChapters() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        setChapters(JSON.parse(stored));
+        const parsed = JSON.parse(stored);
+        // データ移行ロジック: 旧キー名があれば新キー名にマッピング
+        const migrated = parsed.map((c: any) => ({
+          ...c,
+          haruStory: c.haruStory || c.parallelStory || "",
+          soraStory: c.soraStory || c.renStory || "",
+        }));
+        setChapters(migrated);
       }
     } catch {
       // ignore
@@ -54,8 +60,8 @@ export function useChapters() {
     []
   );
 
-  // 最新N件の物語コンテキストを取得
-  const getStorySummary = (count: number = 3) => {
+  // ハルの物語コンテキストを取得
+  const getHaruStorySummary = (count: number = 3) => {
     if (chapters.length === 0) return "";
     const recent = [...chapters]
       .sort((a, b) => b.createdAt - a.createdAt)
@@ -63,21 +69,21 @@ export function useChapters() {
       .reverse();
 
     return recent
-      .map((c) => `第${c.chapterNumber}章:\n${c.parallelStory}`)
+      .map((c) => `第${c.chapterNumber}章:\n${c.haruStory}`)
       .join("\n\n---\n\n");
   };
 
-  // レンの物語コンテキストを取得
-  const getRenStorySummary = (count: number = 3) => {
+  // ソラの物語コンテキストを取得
+  const getSoraStorySummary = (count: number = 3) => {
     if (chapters.length === 0) return "";
     const recent = [...chapters]
       .sort((a, b) => b.createdAt - a.createdAt)
-      .filter((c) => c.renStory) // renStoryが存在するものだけ
+      .filter((c) => c.soraStory) // soraStoryが存在するものだけ
       .slice(0, count)
       .reverse();
 
     return recent
-      .map((c) => `第${c.chapterNumber}章:\n${c.renStory}`)
+      .map((c) => `第${c.chapterNumber}章:\n${c.soraStory}`)
       .join("\n\n---\n\n");
   };
 
@@ -110,8 +116,8 @@ export function useChapters() {
     chapters,
     saveChapter,
     deleteChapter,
-    getStorySummary,
-    getRenStorySummary,
+    getHaruStorySummary,
+    getSoraStorySummary,
     getNextChapterNumber,
     importChapters,
     loaded,

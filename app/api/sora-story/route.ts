@@ -1,8 +1,8 @@
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 import {
-    renStorySystemPrompt,
-    buildRenStoryUserMessage,
-} from "@/lib/renStoryPrompt";
+    soraStorySystemPrompt,
+    buildSoraStoryUserMessage,
+} from "@/lib/soraStoryPrompt";
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -19,18 +19,18 @@ export async function POST(req: NextRequest) {
             return new Response("API Key setup error", { status: 500 });
         }
 
-        const userMessage = buildRenStoryUserMessage(
+        const userMessage = buildSoraStoryUserMessage(
             userEntry,
             storySummary || ""
         );
 
-        console.log(`[API ren-story] Starting generation with model gemini-3-flash-preview. API Key: ${apiKey.slice(0, 4)}...`);
+        console.log(`[API sora-story] Starting generation with model gemini-3.1-flash-lite-preview.`);
 
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel(
             {
-                model: "gemini-3-flash-preview",
-                systemInstruction: renStorySystemPrompt,
+                model: "gemini-3.1-flash-lite-preview",
+                systemInstruction: soraStorySystemPrompt,
                 safetySettings: [
                     { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
                     { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -45,24 +45,15 @@ export async function POST(req: NextRequest) {
 
         const readable = new ReadableStream({
             async start(controller) {
-                let chunkCount = 0;
-                let totalTextLength = 0;
                 try {
                     for await (const chunk of result.stream) {
-                        try {
-                            const text = chunk.text();
-                            if (text) {
-                                chunkCount++;
-                                totalTextLength += text.length;
-                                controller.enqueue(new TextEncoder().encode(text));
-                            }
-                        } catch (chunkError: any) {
-                            console.error(`[API ren-story] Chunk error (safety?): ${chunkError.message}`);
+                        const text = chunk.text();
+                        if (text) {
+                            controller.enqueue(new TextEncoder().encode(text));
                         }
                     }
-                    console.log(`[API ren-story] Completed. Chunks: ${chunkCount}, Total Length: ${totalTextLength}`);
                 } catch (streamError: any) {
-                    console.error(`[API ren-story] Stream reading error: ${streamError.message}`);
+                    console.error(`[API sora-story] Stream reading error: ${streamError.message}`);
                     const msg = streamError.message?.includes("SAFETY") 
                         ? "\n[安全フィルターにより内容が制限されました。]" 
                         : "\n[物語の生成中にエラーが発生しました。]";
@@ -80,7 +71,7 @@ export async function POST(req: NextRequest) {
             },
         });
     } catch (error: any) {
-        console.error(`[API ren-story] Top-level error: ${error.message}`);
-        return new Response(`Failed to generate ren story: ${error.message}`, { status: 500 });
+        console.error(`[API sora-story] Top-level error: ${error.message}`);
+        return new Response(`Failed to generate sora story: ${error.message}`, { status: 500 });
     }
 }

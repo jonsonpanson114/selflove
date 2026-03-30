@@ -17,10 +17,10 @@ export async function POST(req: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Use v1beta for preview models like gemini-3-flash-preview
+    // Use v1beta for preview models like gemini-3.1-flash-lite-preview
     const model = genAI.getGenerativeModel(
       {
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-flash-lite-preview",
         systemInstruction: innerVoiceSystemPrompt,
         safetySettings: [
           { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },

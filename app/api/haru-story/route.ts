@@ -1,8 +1,8 @@
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 import {
-  parallelStorySystemPrompt,
-  buildParallelStoryUserMessage,
-} from "@/lib/parallelStoryPrompt";
+  haruStorySystemPrompt,
+  buildHaruStoryUserMessage,
+} from "@/lib/haruStoryPrompt";
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
       return new Response("API Key setup error", { status: 500 });
     }
 
-    const userMessage = buildParallelStoryUserMessage(
+    const userMessage = buildHaruStoryUserMessage(
       userEntry,
       storySummary || ""
     );
@@ -27,8 +27,8 @@ export async function POST(req: NextRequest) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel(
       {
-        model: "gemini-3-flash-preview",
-        systemInstruction: parallelStorySystemPrompt,
+        model: "gemini-3.1-flash-lite-preview",
+        systemInstruction: haruStorySystemPrompt,
         safetySettings: [
           { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
           { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
             }
           }
         } catch (streamError: any) {
-          console.error("Stream reading error in parallel-story:", streamError);
+          console.error("Stream reading error in haru-story:", streamError);
           const msg = streamError.message?.includes("SAFETY") 
             ? "\n[安全フィルターにより内容が制限されました。]" 
             : "\n[物語の生成中にエラーが発生しました。]";
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (error: any) {
-    console.error("Gemini API error in parallel-story:", error);
+    console.error("Gemini API error in haru-story:", error);
     return new Response(`Failed to generate story: ${error.message}`, { status: 500 });
   }
 }
