@@ -7,8 +7,8 @@
 // 設定
 // ====================
 const CONFIG = {
-  // あなたのVercelデプロイURLに変更してください
-  API_ENDPOINT: 'https://your-project.vercel.app/api/send-push',
+  // VercelデプロイURL
+  API_ENDPOINT: 'https://orbital-rosette.vercel.app/api/send-push',
 
   // .env.localのPUSH_AUTH_TOKENと同じ値を設定
   AUTH_TOKEN: 'selflove-2026-push-auth-token-secure',
