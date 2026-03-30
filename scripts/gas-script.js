@@ -32,16 +32,39 @@ function sendDailyNotification() {
 
   // 22:30±5分以内の場合のみ実行（重複実行防止）
   if (hour === CONFIG.NOTIFICATION_HOUR && Math.abs(minute - CONFIG.NOTIFICATION_MINUTE) <= 5) {
-    console.log('Sending scheduled notification...');
+    console.log('Sending evening notification...');
 
     const response = sendPushNotification(
       'selflove: 新しい物語',
       'レン「やれやれ、新しい物語を書き始めたよ。君の今日の話を聞かせてくれないか？」'
     );
 
-    console.log('Notification result:', response);
+    console.log('Evening notification result:', response);
   } else {
     console.log('Not scheduled time yet. Current:', hour + ':' + minute);
+  }
+}
+
+/**
+ * 毎朝7:00に実行される関数（トリガーで設定）
+ */
+function sendMorningNotification() {
+  const now = new Date();
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+
+  // 7:00±5分以内の場合のみ実行（重複実行防止）
+  if (hour === 7 && Math.abs(minute - 0) <= 5) {
+    console.log('Sending morning notification...');
+
+    const response = sendPushNotification(
+      'selflove: おはよう',
+      'レン「おはよう！新しい一日が始まるよ。今日も一緒に物語を紡ごう」'
+    );
+
+    console.log('Morning notification result:', response);
+  } else {
+    console.log('Not morning time yet. Current:', hour + ':' + minute);
   }
 }
 
@@ -87,27 +110,29 @@ function sendPushNotification(title, body) {
 // ====================
 
 /**
- * 手動テスト用関数
+ * 手動テスト用関数（夜）
  * GASエディタから直接実行してください
  */
 function testNotification() {
-  console.log('Sending test notification...');
+  console.log('Sending evening test notification...');
   const result = sendPushNotification(
-    'selflove: テスト通知',
-    'レン「これはテスト通知です。通知が届いているかな？」'
+    'selflove: テスト通知（夜）',
+    'レン「これは夜のテスト通知です」'
   );
   console.log('Test result:', result);
   return result;
 }
 
 /**
- * 朝のテスト通知（7:00）
+ * 朝のテスト通知
  */
 function testMorningNotification() {
+  console.log('Sending morning test notification...');
   const result = sendPushNotification(
-    'selflove: おはよう',
-    'レン「おはよう！新しい一日が始まるよ」'
+    'selflove: テスト通知（朝）',
+    'レン「おはよう！朝のテスト通知です」'
   );
+  console.log('Test result:', result);
   return result;
 }
 
@@ -138,13 +163,23 @@ function deleteAllTriggers() {
 }
 
 /**
- * 22:30のトリガーを作成
+ * 朝7:00と夜22:30のトリガーを作成
  */
 function createDailyTrigger() {
   // 既存のトリガーを削除
   deleteAllTriggers();
 
-  // 新しいトリガーを作成
+  // 朝7:00のトリガーを作成
+  ScriptApp.newTrigger('sendMorningNotification')
+    .timeBased()
+    .everyDays(1)
+    .atHour(7)
+    .nearMinute(0)
+    .create();
+
+  console.log('Morning trigger created for 7:00');
+
+  // 夜22:30のトリガーを作成
   ScriptApp.newTrigger('sendDailyNotification')
     .timeBased()
     .everyDays(1)
@@ -152,7 +187,8 @@ function createDailyTrigger() {
     .nearMinute(CONFIG.NOTIFICATION_MINUTE)
     .create();
 
-  console.log('Daily trigger created for ' + CONFIG.NOTIFICATION_HOUR + ':' + CONFIG.NOTIFICATION_MINUTE);
+  console.log('Evening trigger created for ' + CONFIG.NOTIFICATION_HOUR + ':' + CONFIG.NOTIFICATION_MINUTE);
+  console.log('Both triggers created successfully!');
 }
 
 /**
