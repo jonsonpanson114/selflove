@@ -45,7 +45,9 @@ export async function POST(request: NextRequest) {
         } catch (error: any) {
           // 無効な購読を削除
           if (error.statusCode === 404 || error.statusCode === 410) {
-            removeSubscription(sub.endpoint);
+            if (sub.endpoint) {
+              removeSubscription(sub.endpoint);
+            }
           }
           return { success: false, endpoint: sub.endpoint, error: error.message };
         }
