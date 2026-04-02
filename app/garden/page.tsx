@@ -60,7 +60,46 @@ export default function GardenPage() {
 
             {mounted && loaded ? (
                 chapters.length > 0 ? (
-                    <GardenView chapters={chapters} />
+                    <>
+                        <GardenView chapters={chapters} />
+                        
+                        {/* Relics Collection */}
+                        <div style={{ marginTop: "3rem" }}>
+                            <p className="serif" style={{ fontSize: "0.9rem", color: "var(--gold)", opacity: 0.8, marginBottom: "1.2rem", textAlign: "center", letterSpacing: "0.1em" }}>
+                                拾い集めた遺物
+                            </p>
+                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: "1rem" }}>
+                                {chapters.filter(c => c.relic).map((c, i) => (
+                                    <div 
+                                        key={c.id} 
+                                        style={{ 
+                                            padding: "1rem", 
+                                            background: "white", 
+                                            borderRadius: "8px", 
+                                            border: "1px solid var(--border)",
+                                            boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
+                                            textAlign: "center"
+                                        }}
+                                    >
+                                        <p style={{ fontSize: "1.2rem", marginBottom: "0.5rem" }}>🏺</p>
+                                        <p style={{ fontSize: "0.8rem", fontWeight: "bold", color: "var(--ink)", marginBottom: "0.3rem" }}>
+                                            {c.relic}
+                                        </p>
+                                        <p style={{ fontSize: "0.65rem", color: "var(--ink)", opacity: 0.5, lineHeight: 1.4 }}>
+                                            {c.relicDescription}
+                                        </p>
+                                    </div>
+                                ))}
+                                {chapters.filter(c => c.relic).length === 0 && (
+                                    <div style={{ gridColumn: "1 / -1", padding: "1.5rem", textAlign: "center", border: "1px dashed var(--border)", borderRadius: "8px" }}>
+                                        <p style={{ fontSize: "0.75rem", color: "var(--ink)", opacity: 0.35 }}>
+                                            物語の中で見つかる「なにか」がここに集まります。
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </>
                 ) : (
                     <div style={{ padding: "3rem 0", textAlign: "center", border: "1px dashed var(--border)", borderRadius: "12px", background: "var(--paper)" }}>
                         <p style={{ fontSize: "0.9rem", color: "var(--ink)", opacity: 0.5, lineHeight: 1.8 }}>

@@ -12,6 +12,8 @@ export interface Chapter {
   soraStory: string; // ソラ（シングルマザー）の物語
   chapterNumber: number;
   createdAt: number; // Unix timestamp
+  relic?: string;
+  relicDescription?: string;
 }
 
 const STORAGE_KEY = "selflove-chapters";

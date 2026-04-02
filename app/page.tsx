@@ -14,9 +14,9 @@ import {
   getNextPromptIndex,
 } from "@/lib/writingPrompts";
 import {
-  getNotifSettings,
-  shouldShowNotification,
-} from "@/lib/notificationSettings";
+  subscribeToPushNotifications,
+  requestNotificationPermission,
+} from "@/lib/notificationService";
 
 const MOOD_OPTIONS = [
   { value: 1, emoji: "😔", label: "辛い" },
@@ -66,10 +66,16 @@ export default function Home() {
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedEntry, setSubmittedEntry] = useState("");
   const [submittedMood, setSubmittedMood] = useState<number | null>(null);
+  const [currentRelic, setCurrentRelic] = useState<{ name: string; description: string } | null>(null);
   const [error, setError] = useState("");
   const [promptIndex, setPromptIndex] = useState(0); // Server uses 0
   const [mounted, setMounted] = useState(false);
+<<<<<<< HEAD
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+=======
+  const [notifPermission, setNotifPermission] = useState<string>("default");
+  const [showNotifBanner, setShowNotifBanner] = useState(false);
+>>>>>>> 9c28ec646ae94ca991f7dd4a35002bfb2cbcdda1
 
   const { chapters, saveChapter, getHaruStorySummary, getSoraStorySummary, getNextChapterNumber, loaded } =
     useChapters();
@@ -78,30 +84,54 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     setPromptIndex(getRandomPromptIndex());
+
+    if ("Notification" in window) {
+      setNotifPermission(Notification.permission);
+
+      // Show banner if permission not granted
+      if (Notification.permission === "default") {
+        setShowNotifBanner(true);
+      } else if (Notification.permission === "granted") {
+        // Subscribe to push notifications
+        subscribeToPushNotifications().then((subscription) => {
+          if (subscription) {
+            console.log('[App] Push subscription successful');
+          }
+        });
+      }
+    } else {
+      console.log('[App] Notification API not available');
+    }
   }, []);
 
-  // 2. Notification handling - only after mount and data loaded
-  useEffect(() => {
-    if (!mounted || !loaded) return;
-    
-    const todayStr = new Date().toISOString().split("T")[0];
-    const hasTodayEntry = chapters.some((c) => c.date === todayStr);
-    const settings = getNotifSettings();
-    
-    if (shouldShowNotification(settings, hasTodayEntry)) {
-      try {
-        const NotificationAPI = (window as any).Notification;
-        if (NotificationAPI && NotificationAPI.permission === "granted") {
-          new NotificationAPI("selflove", {
-            body: "今日の一ページを書いてみませんか？",
-            icon: "/icons/icon-192.png",
+  const handleRequestNotif = async () => {
+    const permission = await requestNotificationPermission();
+    setNotifPermission(permission);
+
+    if (permission === "granted") {
+      setShowNotifBanner(false);
+      console.log('[App] Notification permission granted');
+
+      // Subscribe to push notifications
+      const subscription = await subscribeToPushNotifications();
+      if (subscription) {
+        console.log('[App] Push subscription successful');
+
+        // Show test notification
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.showNotification("selflove: 通知設定完了", {
+              body: "毎日22:30に通知が届きます。アプリを閉じていても通知されます。",
+              icon: "/icons/icon-192.png",
+              tag: "test-notification",
+            });
           });
         }
-      } catch (err) {
-        console.warn("Notification failed:", err);
       }
     }
-  }, [mounted, loaded, chapters]);
+  };
+
+
 
   const today = new Date();
   // Ensure these are stable during SSR/initial hydration
@@ -171,15 +201,43 @@ export default function Home() {
       setIsLoadingSoraStory(false);
 
       // 少なくとも1つ成功していれば保存
+<<<<<<< HEAD
       if (voiceData || haruData || soraData) {
+=======
+      if (voiceData || storyData || renData) {
+        // 遺物（Relic）の抽出
+        let relicName = "";
+        let relicDesc = "";
+        const relicMatch = renData.match(/relic:\s*(.+?)\s*\/\s*description:\s*(.+)$/im);
+        let finalRenData = renData;
+        
+        if (relicMatch) {
+          relicName = relicMatch[1].trim();
+          relicDesc = relicMatch[2].trim();
+          // 表示用のテキストからは遺物情報を削除
+          finalRenData = renData.replace(/relic:\s*.+$/im, "").trim();
+        }
+
+>>>>>>> 9c28ec646ae94ca991f7dd4a35002bfb2cbcdda1
         saveChapter({
           date: now.toISOString().split("T")[0],
           userEntry: entryText,
           innerVoice: voiceData || "（生成に失敗しました）",
+<<<<<<< HEAD
           haruStory: haruData || "（生成に失敗しました）",
           soraStory: soraData || "",
+=======
+          parallelStory: storyData || "（生成に失敗しました）",
+          renStory: finalRenData,
+>>>>>>> 9c28ec646ae94ca991f7dd4a35002bfb2cbcdda1
           mood: mood ?? undefined,
+          relic: relicName || undefined,
+          relicDescription: relicDesc || undefined,
         });
+
+        if (relicName) {
+          setCurrentRelic({ name: relicName, description: relicDesc });
+        }
       }
 
       if (failedItems.length > 0) {
@@ -208,12 +266,77 @@ export default function Home() {
     setSoraStory("");
     setSubmittedEntry("");
     setSubmittedMood(null);
+    setCurrentRelic(null);
     setError("");
     setPromptIndex(getRandomPromptIndex());
   };
 
   return (
     <BookPage isPulsing={isLoading}>
+      {showNotifBanner && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 100000,
+          backgroundColor: "rgba(0, 0, 0, 0.7)",
+          backdropFilter: "blur(4px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "20px"
+        }}>
+          <div style={{
+            backgroundColor: "#FDFAF4",
+            padding: "2rem",
+            borderRadius: "24px",
+            maxWidth: "340px",
+            width: "100%",
+            textAlign: "center",
+            boxShadow: "0 20px 40px rgba(0,0,0,0.4)",
+            border: "1px solid rgba(74, 103, 65, 0.2)"
+          }}>
+            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🔔</div>
+            <h3 style={{ color: "#3D3328", marginBottom: "0.5rem", fontSize: "1.1rem" }}>夜の10時半に会いましょう</h3>
+            <p style={{ color: "#3D3328", opacity: 0.7, fontSize: "0.85rem", lineHeight: "1.5", marginBottom: "1.5rem" }}>
+              レン「新しい物語の準備を整えて待っているよ。通知を受け取れるようにしておいてくれないか？」
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <button
+                onClick={handleRequestNotif}
+                style={{
+                  backgroundColor: "#4A6741",
+                  color: "white",
+                  border: "none",
+                  padding: "0.8rem",
+                  borderRadius: "12px",
+                  fontWeight: "bold",
+                  fontSize: "0.9rem",
+                  cursor: "pointer"
+                }}
+              >
+                通知をオンにする
+              </button>
+              <button
+                onClick={() => setShowNotifBanner(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#3D3328",
+                  opacity: 0.5,
+                  padding: "0.5rem",
+                  fontSize: "0.8rem",
+                  cursor: "pointer"
+                }}
+              >
+                あとで
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div
         style={{
@@ -464,12 +587,37 @@ export default function Home() {
               id: "sora-story",
               label: "遠い星の話",
               content: (
+<<<<<<< HEAD
                 <InnerVoiceResponse
                   text={soraStory}
                   isLoading={isLoadingSoraStory}
                   label="Soraの物語"
                   isStory={true}
                 />
+=======
+                <div>
+                  <InnerVoiceResponse
+                    text={renStory}
+                    isLoading={isLoadingRenStory}
+                    label="レンの物語"
+                    isStory={true}
+                  />
+                  {currentRelic && !isLoadingRenStory && (
+                    <div style={{
+                      marginTop: "1.5rem",
+                      padding: "1rem",
+                      background: "rgba(196, 169, 106, 0.1)",
+                      border: "1px dashed var(--gold)",
+                      borderRadius: "8px",
+                      textAlign: "center"
+                    }}>
+                      <p style={{ fontSize: "0.7rem", color: "var(--gold)", marginBottom: "0.5rem", letterSpacing: "0.1em" }}>遺物が見つかりました</p>
+                      <p style={{ fontSize: "0.9rem", fontWeight: "bold", color: "var(--ink)", marginBottom: "0.2rem" }}>{currentRelic.name}</p>
+                      <p style={{ fontSize: "0.75rem", color: "var(--ink)", opacity: 0.6 }}>{currentRelic.description}</p>
+                    </div>
+                  )}
+                </div>
+>>>>>>> 9c28ec646ae94ca991f7dd4a35002bfb2cbcdda1
               ),
             },
           ]}

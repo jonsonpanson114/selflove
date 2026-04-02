@@ -27,6 +27,17 @@ const getPlantSize = (textLength: number) => {
 export default function GardenView({ chapters }: GardenViewProps) {
     const [hoveredChapter, setHoveredChapter] = useState<Chapter | null>(null);
 
+    // Weather calculation based on average mood of recent chapters
+    const weather = useMemo(() => {
+        if (chapters.length === 0) return "clear";
+        const recent = chapters.slice(-3); // check last 3 chapters
+        const avg = recent.reduce((sum, c) => sum + (c.mood || 3), 0) / recent.length;
+
+        if (avg >= 4) return "sunny";
+        if (avg <= 2.2) return "rainy";
+        return "misty";
+    }, [chapters]);
+
     const plants = useMemo(() => {
         return chapters.map((chapter, i) => {
             // Simple organic distribution
@@ -49,7 +60,37 @@ export default function GardenView({ chapters }: GardenViewProps) {
     }, [chapters]);
 
     return (
-        <div style={{ position: "relative", width: "100%", height: "400px", borderRadius: "12px", background: "var(--ink)", overflow: "hidden" }}>
+        <div style={{ 
+            position: "relative", 
+            width: "100%", 
+            height: "400px", 
+            borderRadius: "12px", 
+            background: weather === "rainy" ? "#1A202C" : weather === "misty" ? "#2D3748" : "var(--ink)", 
+            overflow: "hidden",
+            transition: "background 2s ease"
+        }}>
+            {/* Weather Layers */}
+            <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 5 }}>
+                {weather === "rainy" && (
+                    <>
+                        {[...Array(25)].map((_, i) => (
+                            <div 
+                                key={i} 
+                                className="rain-drop" 
+                                style={{ 
+                                    left: `${Math.random() * 100}%`, 
+                                    animationDelay: `${Math.random() * 1}s`,
+                                    animationDuration: `${0.6 + Math.random() * 0.4}s`,
+                                    opacity: 0.3 + Math.random() * 0.3
+                                }} 
+                            />
+                        ))}
+                    </>
+                )}
+                {weather === "misty" && <div className="mist-cloud" />}
+                {weather === "sunny" && <div className="sun-overlay" />}
+            </div>
+
             {/* Glow effects */}
             <svg width="100%" height="100%" style={{ position: "absolute", inset: 0, opacity: 0.3 }}>
                 <defs>

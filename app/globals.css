@@ -96,3 +96,46 @@ textarea {
   animation: gentle-pulse 4s ease-in-out infinite;
   transition: background-color 2s ease;
 }
+
+/* Garden Weather Animations */
+@keyframes rain-fall {
+  from { transform: translateY(-100%); }
+  to { transform: translateY(400px); }
+}
+
+@keyframes mist-drift {
+  0% { transform: translateX(-10%) translateY(0); opacity: 0.3; }
+  50% { transform: translateX(10%) translateY(5px); opacity: 0.5; }
+  100% { transform: translateX(-10%) translateY(0); opacity: 0.3; }
+}
+
+@keyframes sun-glint {
+  0% { opacity: 0.1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(1.1); }
+  100% { opacity: 0.1; transform: scale(1); }
+}
+
+.rain-drop {
+  position: absolute;
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.3));
+  animation: rain-fall 0.8s linear infinite;
+}
+
+.mist-cloud {
+  position: absolute;
+  inset: -50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+  filter: blur(40px);
+  animation: mist-drift 15s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.sun-overlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(255, 215, 100, 0.2) 0%, transparent 60%);
+  animation: sun-glint 10s ease-in-out infinite;
+  pointer-events: none;
+}
