@@ -1,5 +1,0 @@
-
- name               value               environments                        created    
- PUSH_AUTH_TOKEN    Encrypted           Development, Preview, Production    2d ago     
- GOOGLE_API_KEY     Encrypted           Production, Preview, Development    39d ago    
-
