@@ -1,67 +1,41 @@
-<<<<<<< HEAD
-import { NextResponse } from 'next/server';
-
-export async function POST(req: Request) {
-  try {
-    const { subscription, settings } = await req.json();
-
-    const gasUrl = process.env.GAS_URL;
-    const gasAuthToken = process.env.GAS_AUTH_TOKEN;
-
-    if (!gasUrl) {
-      console.error('GAS_URL is missing');
-      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-    }
-
-    const response = await fetch(gasUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        auth_token: gasAuthToken,
-        app_name: 'selflove',
-        action: 'subscribe',
-        subscription: subscription,
-        settings: settings,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`GAS response error: ${response.statusText}`);
-    }
-
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error('Push subscription failed:', error);
-    return NextResponse.json({ error: 'Failed to subscribe' }, { status: 500 });
-  }
-}
-=======
 import { NextRequest, NextResponse } from 'next/server';
-import webpush from 'web-push';
 import { addSubscription, getSubscriptions } from '@/lib/pushStore';
-
-// VAPID設定
-const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
-const privateKey = process.env.VAPID_PRIVATE_KEY || '';
-
-if (publicKey && privateKey) {
-  webpush.setVapidDetails(
-    'mailto:selflove@example.com',
-    publicKey,
-    privateKey
-  );
-}
 
 export async function POST(request: NextRequest) {
   try {
-    const { subscription } = await request.json();
+    const { subscription, settings } = await request.json();
 
     if (!subscription) {
       return NextResponse.json({ error: 'Missing subscription' }, { status: 400 });
     }
 
-    // 購読情報を保存
-    addSubscription(subscription);
+    // 1. ローカルメモリストアに保存 (send-push API用)
+    const subObj = typeof subscription === 'string' ? JSON.parse(subscription) : subscription;
+    addSubscription(subObj);
+
+    // 2. GASに転送 (スケジュール通知用)
+    const gasUrl = process.env.GAS_URL;
+    const gasAuthToken = process.env.GAS_AUTH_TOKEN;
+
+    if (gasUrl) {
+      try {
+        await fetch(gasUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            auth_token: gasAuthToken,
+            app_name: 'selflove',
+            action: 'subscribe',
+            subscription: subscription,
+            settings: settings,
+          }),
+        });
+        console.log('[API] Subscription forwarded to GAS');
+      } catch (gasError) {
+        console.warn('[API] Failed to forward to GAS:', gasError);
+        // GAS転送失敗でも、ローカル保存ができていればOKとする
+      }
+    }
 
     return NextResponse.json({
       ok: true,
@@ -73,10 +47,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// 購読情報を取得（テスト用）
+// 購読情報を取得（テスト・デバッグ用）
 export async function GET() {
   return NextResponse.json({
     subscriptions: getSubscriptions().map(s => ({ endpoint: s.endpoint }))
   });
 }
->>>>>>> 9c28ec646ae94ca991f7dd4a35002bfb2cbcdda1
+
+

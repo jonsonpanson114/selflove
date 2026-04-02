@@ -2,21 +2,21 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import BookPage from "@/components/BookPage";
-import StoryTabs from "@/components/StoryTabs";
-import InnerVoiceResponse from "@/components/InnerVoiceResponse";
-import { NotificationSettingsUI } from "@/components/NotificationSettingsUI";
-import { useChapters } from "@/hooks/useChapters";
-import { getTodayAffirmation, getGreeting } from "@/lib/affirmations";
+import BookPage from "../components/BookPage";
+import StoryTabs from "../components/StoryTabs";
+import InnerVoiceResponse from "../components/InnerVoiceResponse";
+import NotificationSettings from "../components/NotificationSettings";
+import { useChapters } from "../hooks/useChapters";
+import { getTodayAffirmation, getGreeting } from "../lib/affirmations";
 import {
   writingPrompts,
   getRandomPromptIndex,
   getNextPromptIndex,
-} from "@/lib/writingPrompts";
+} from "../lib/writingPrompts";
 import {
   subscribeToPushNotifications,
   requestNotificationPermission,
-} from "@/lib/notificationService";
+} from "../lib/notificationService";
 
 const MOOD_OPTIONS = [
   { value: 1, emoji: "😔", label: "辛い" },
@@ -55,6 +55,7 @@ async function streamResponse(
 }
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
   const [entry, setEntry] = useState("");
   const [mood, setMood] = useState<number | null>(null);
   const [innerVoice, setInnerVoice] = useState("");
@@ -67,15 +68,13 @@ export default function Home() {
   const [submittedEntry, setSubmittedEntry] = useState("");
   const [submittedMood, setSubmittedMood] = useState<number | null>(null);
   const [currentRelic, setCurrentRelic] = useState<{ name: string; description: string } | null>(null);
+  const [relicName, setRelicName] = useState("");
+  const [relicDesc, setRelicDesc] = useState("");
   const [error, setError] = useState("");
-  const [promptIndex, setPromptIndex] = useState(0); // Server uses 0
-  const [mounted, setMounted] = useState(false);
-<<<<<<< HEAD
+  const [promptIndex, setPromptIndex] = useState(0); 
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
-=======
   const [notifPermission, setNotifPermission] = useState<string>("default");
   const [showNotifBanner, setShowNotifBanner] = useState(false);
->>>>>>> 9c28ec646ae94ca991f7dd4a35002bfb2cbcdda1
 
   const { chapters, saveChapter, getHaruStorySummary, getSoraStorySummary, getNextChapterNumber, loaded } =
     useChapters();
@@ -121,7 +120,7 @@ export default function Home() {
         if ("serviceWorker" in navigator) {
           navigator.serviceWorker.ready.then((reg) => {
             reg.showNotification("selflove: 通知設定完了", {
-              body: "毎日22:30に通知が届きます。アプリを閉じていても通知されます。",
+              body: "設定された時間に通知が届きます。アプリを閉じていても通知されます。",
               icon: "/icons/icon-192.png",
               tag: "test-notification",
             });
@@ -131,10 +130,7 @@ export default function Home() {
     }
   };
 
-
-
   const today = new Date();
-  // Ensure these are stable during SSR/initial hydration
   const dateStr = mounted ? today.toLocaleDateString("ja-JP", {
     year: "numeric",
     month: "long",
@@ -166,7 +162,6 @@ export default function Home() {
     setError("");
 
     try {
-      // 個別に実行して、1つが失敗しても他は続行
       const [voiceResult, haruStoryResult, soraStoryResult] = await Promise.allSettled([
         streamResponse(
           "/api/inner-voice",
@@ -185,12 +180,10 @@ export default function Home() {
         ),
       ]);
 
-      // 成功したものを取り出す
       const voiceData = voiceResult.status === "fulfilled" ? voiceResult.value : "";
       const haruData = haruStoryResult.status === "fulfilled" ? haruStoryResult.value : "";
       const soraData = soraStoryResult.status === "fulfilled" ? soraStoryResult.value : "";
 
-      // 失敗があればエラー表示
       const failedItems = [];
       if (voiceResult.status === "rejected") failedItems.push("内なる自分の声");
       if (haruStoryResult.status === "rejected") failedItems.push("Haruの物語");
@@ -200,36 +193,13 @@ export default function Home() {
       setIsLoadingHaruStory(false);
       setIsLoadingSoraStory(false);
 
-      // 少なくとも1つ成功していれば保存
-<<<<<<< HEAD
       if (voiceData || haruData || soraData) {
-=======
-      if (voiceData || storyData || renData) {
-        // 遺物（Relic）の抽出
-        let relicName = "";
-        let relicDesc = "";
-        const relicMatch = renData.match(/relic:\s*(.+?)\s*\/\s*description:\s*(.+)$/im);
-        let finalRenData = renData;
-        
-        if (relicMatch) {
-          relicName = relicMatch[1].trim();
-          relicDesc = relicMatch[2].trim();
-          // 表示用のテキストからは遺物情報を削除
-          finalRenData = renData.replace(/relic:\s*.+$/im, "").trim();
-        }
-
->>>>>>> 9c28ec646ae94ca991f7dd4a35002bfb2cbcdda1
         saveChapter({
           date: now.toISOString().split("T")[0],
           userEntry: entryText,
           innerVoice: voiceData || "（生成に失敗しました）",
-<<<<<<< HEAD
           haruStory: haruData || "（生成に失敗しました）",
           soraStory: soraData || "",
-=======
-          parallelStory: storyData || "（生成に失敗しました）",
-          renStory: finalRenData,
->>>>>>> 9c28ec646ae94ca991f7dd4a35002bfb2cbcdda1
           mood: mood ?? undefined,
           relic: relicName || undefined,
           relicDescription: relicDesc || undefined,
@@ -241,11 +211,10 @@ export default function Home() {
       }
 
       if (failedItems.length > 0) {
-        // rejectedの場合はReasonからメッセージ取得を試みる
         const errorMsgs = [];
-        if (voiceResult.status === "rejected") errorMsgs.push(`内なる自分の声 (${voiceResult.reason?.message || "不明なエラー"})`);
-        if (haruStoryResult.status === "rejected") errorMsgs.push(`Haruの物語 (${haruStoryResult.reason?.message || "不明なエラー"})`);
-        if (soraStoryResult.status === "rejected") errorMsgs.push(`Soraの物語 (${soraStoryResult.reason?.message || "不明なエラー"})`);
+        if (voiceResult.status === "rejected") errorMsgs.push(`内なる自分の声 (${(voiceResult.reason as any)?.message || "不明なエラー"})`);
+        if (haruStoryResult.status === "rejected") errorMsgs.push(`Haruの物語 (${(haruStoryResult.reason as any)?.message || "不明なエラー"})`);
+        if (soraStoryResult.status === "rejected") errorMsgs.push(`Soraの物語 (${(soraStoryResult.reason as any)?.message || "不明なエラー"})`);
 
         setError(`${errorMsgs.join("、")} の生成に失敗しました。`);
       }
@@ -343,6 +312,7 @@ export default function Home() {
           marginBottom: "1.75rem",
           borderBottom: "1px solid var(--border)",
           paddingBottom: "1.25rem",
+          marginTop: "1rem"
         }}
       >
         <p
@@ -587,37 +557,12 @@ export default function Home() {
               id: "sora-story",
               label: "遠い星の話",
               content: (
-<<<<<<< HEAD
                 <InnerVoiceResponse
                   text={soraStory}
                   isLoading={isLoadingSoraStory}
                   label="Soraの物語"
                   isStory={true}
                 />
-=======
-                <div>
-                  <InnerVoiceResponse
-                    text={renStory}
-                    isLoading={isLoadingRenStory}
-                    label="レンの物語"
-                    isStory={true}
-                  />
-                  {currentRelic && !isLoadingRenStory && (
-                    <div style={{
-                      marginTop: "1.5rem",
-                      padding: "1rem",
-                      background: "rgba(196, 169, 106, 0.1)",
-                      border: "1px dashed var(--gold)",
-                      borderRadius: "8px",
-                      textAlign: "center"
-                    }}>
-                      <p style={{ fontSize: "0.7rem", color: "var(--gold)", marginBottom: "0.5rem", letterSpacing: "0.1em" }}>遺物が見つかりました</p>
-                      <p style={{ fontSize: "0.9rem", fontWeight: "bold", color: "var(--ink)", marginBottom: "0.2rem" }}>{currentRelic.name}</p>
-                      <p style={{ fontSize: "0.75rem", color: "var(--ink)", opacity: 0.6 }}>{currentRelic.description}</p>
-                    </div>
-                  )}
-                </div>
->>>>>>> 9c28ec646ae94ca991f7dd4a35002bfb2cbcdda1
               ),
             },
           ]}
@@ -730,7 +675,7 @@ export default function Home() {
         
         {showNotificationSettings && (
           <div style={{ marginTop: "1.5rem" }}>
-            <NotificationSettingsUI />
+            <NotificationSettings />
           </div>
         )}
       </div>

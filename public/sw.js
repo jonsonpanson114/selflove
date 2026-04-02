@@ -1,33 +1,13 @@
-<<<<<<< HEAD
-self.addEventListener('push', (event) => {
-  const data = event.data?.json();
-  if (!data) return;
-=======
 const CACHE_NAME = 'selflove-v5';
->>>>>>> 9c28ec646ae94ca991f7dd4a35002bfb2cbcdda1
+const PRECACHE_ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.json',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/favicon.ico'
+];
 
-  const options = {
-    body: data.body,
-    icon: '/icon.png',
-    badge: '/badge.png',
-    vibrate: [200, 100, 200],
-    requireInteraction: true,
-    data: {
-      url: data.url || '/'
-    }
-  };
-
-<<<<<<< HEAD
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
-});
-
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  event.waitUntil(
-    self.clients.openWindow(event.notification.data.url)
-=======
 // Install event
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -89,7 +69,6 @@ self.addEventListener('fetch', (event) => {
         return cached || networkFetch;
       })
     )
->>>>>>> 9c28ec646ae94ca991f7dd4a35002bfb2cbcdda1
   );
 });
 
@@ -108,7 +87,7 @@ self.addEventListener('push', (event) => {
   }
 
   const options = {
-    body: data.body || 'レン「新しい物語の時間ですよ」',
+    body: data.body || '毎日更新される物語を読みませんか？',
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
     vibrate: [200, 100, 200],

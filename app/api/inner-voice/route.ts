@@ -66,3 +66,5 @@ export async function POST(req: NextRequest) {
     return new Response(`Failed to generate inner voice: ${error.message}`, { status: 500 });
   }
 }
+
+
