@@ -2,15 +2,19 @@ import { NextResponse } from 'next/server';
 import webpush from 'web-push';
 import { getRandomMessage } from '@/lib/notificationMessages';
 
-const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
-const privateKey = process.env.VAPID_PRIVATE_KEY || '';
+const publicKey = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '').replace(/['"]/g, '');
+const privateKey = (process.env.VAPID_PRIVATE_KEY || '').replace(/['"]/g, '');
 
 if (publicKey && privateKey) {
-  webpush.setVapidDetails(
-    'mailto:jonso@example.com',
-    publicKey,
-    privateKey
-  );
+  try {
+    webpush.setVapidDetails(
+      'mailto:jonso@example.com',
+      publicKey,
+      privateKey
+    );
+  } catch (error) {
+    console.error('VAPID initialization failed:', error);
+  }
 }
 
 export async function POST(req: Request) {

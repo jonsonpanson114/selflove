@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { NotificationSettings } from '../types/notification';
-import { subscribeToPushNotifications } from '../lib/notificationService';
+import { subscribeToPushNotifications, testPushNotification } from '../lib/notificationService';
 
 export const NotificationSettingsUI = () => {
   const [settings, setSettings] = useState<NotificationSettings>({
@@ -37,6 +37,16 @@ export const NotificationSettingsUI = () => {
     }
   };
 
+  const handleTestPush = async (type: 'morning' | 'evening') => {
+    setStatus(`Sending test ${type} notification...`);
+    const result = await testPushNotification(type);
+    if (result && result.ok) {
+      setStatus(`Test ${type} notification sent!`);
+    } else {
+      setStatus(`Failed to send test notification.`);
+    }
+  };
+
   const handleToggle = () => {
     const newSettings = { ...settings, enabled: !settings.enabled };
     saveSettings(newSettings);
@@ -62,8 +72,17 @@ export const NotificationSettingsUI = () => {
 
       {settings.enabled && (
         <div className="space-y-4">
+          {/* 朝の通知設定 */}
           <div className="p-4 bg-white/5 rounded-lg">
-            <h3 className="text-lg font-medium mb-2">朝の呼びかけ (レン)</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-medium">朝の呼びかけ (ソラ)</h3>
+              <button 
+                onClick={() => handleTestPush('morning')}
+                className="text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded transition-colors"
+              >
+                テスト送信
+              </button>
+            </div>
             <div className="flex items-center space-x-2">
               <input 
                 type="number" 
@@ -83,8 +102,17 @@ export const NotificationSettingsUI = () => {
             </div>
           </div>
 
+          {/* 夜の通知設定 */}
           <div className="p-4 bg-white/5 rounded-lg">
-            <h3 className="text-lg font-medium mb-2">夜の呼びかけ (ソラ)</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-medium">夜の呼びかけ (ハル)</h3>
+              <button 
+                onClick={() => handleTestPush('evening')}
+                className="text-xs bg-white/10 hover:bg-white/20 px-2 py-1 rounded transition-colors"
+              >
+                テスト送信
+              </button>
+            </div>
             <div className="flex items-center space-x-2">
               <input 
                 type="number" 

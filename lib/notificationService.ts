@@ -62,3 +62,30 @@ const sendSubscriptionToServer = async (subscription: PushSubscription, settings
     throw new Error('Server response error');
   }
 };
+
+export const testPushNotification = async (type: 'morning' | 'evening') => {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null;
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+
+    if (!subscription) {
+      throw new Error('No active subscription found');
+    }
+
+    const response = await fetch('/api/send-push', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type,
+        subscription: JSON.stringify(subscription)
+      }),
+    });
+
+    return await response.json();
+  } catch (error) {
+    console.error('Test push failed:', error);
+    return null;
+  }
+};
