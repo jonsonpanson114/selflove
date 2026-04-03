@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
+import { parallelStorySystemPrompt, buildParallelStoryUserMessage } from "@/lib/parallelStoryPrompt";
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,27 +14,16 @@ export async function POST(req: NextRequest) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel(
-      { model: "gemini-3.1-flash-lite-preview" },
+      { 
+        model: "gemini-3.1-flash-lite-preview",
+        systemInstruction: parallelStorySystemPrompt
+      },
       { apiVersion: "v1beta" }
     );
 
-    const prompt = `あなたは「陽菜」という名のキャラクターです。
-ユーザーが書いた日記に対して、温かく、包み込むような、そして「明日はもっと良くなるわ」と未来への希望を与える物語を紡いでください。
+    const userMessage = buildParallelStoryUserMessage(userEntry || "", storySummary || "");
+    const result = await model.generateContentStream(userMessage);
 
-## ユーザーの日記
-${userEntry}
-
-## これまでの物語のあらすじ
-${storySummary || "物語の始まり"}
-
-## 制約事項
-- 日本語で記述すること。
-- 改行を適切に入れ、読みやすくすること。
-- 100文字〜200文字程度の短い一節にすること。
-- 一人称は「私」とし、明るく穏やかなトーンで話すこと。
-- ユーザーに対して「素晴らしいわ」と共感しつつ、心強い味方でいることを伝えて結ぶ。`;
-
-    const result = await model.generateContentStream(prompt);
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
