@@ -76,7 +76,7 @@ export default function Home() {
   const [notifPermission, setNotifPermission] = useState<string>("default");
   const [showNotifBanner, setShowNotifBanner] = useState(false);
 
-  const { chapters, saveChapter, gethinaStorySummary, getrenStorySummary, getNextChapterNumber, loaded } =
+  const { chapters, saveChapter, getHinaStorySummary, getRenStorySummary, getNextChapterNumber, loaded } =
     useChapters();
 
   // 1. Initial mounting and prompt initialization
@@ -147,8 +147,8 @@ export default function Home() {
 
     const entryText = entry.trim();
     const now = new Date();
-    const hinaStorySummary = gethinaStorySummary();
-    const renStorySummary = getrenStorySummary();
+    const hinaStorySummary = getHinaStorySummary();
+    const renStorySummary = getRenStorySummary();
 
     setIsLoadingVoice(true);
     setisLoadingHinaStory(true);

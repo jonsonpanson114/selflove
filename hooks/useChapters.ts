@@ -30,7 +30,7 @@ export function useChapters() {
         // データ移行ロジック: 旧キー名があれば新キー名にマッピング
         const migrated = parsed.map((c: any) => ({
           ...c,
-          hinaStory: c.hinaStory || c.haruStory || "",
+          hinaStory: c.hinaStory || c.hinaStory || "",
           renStory: c.renStory || c.renStory || "",
         }));
         setChapters(migrated);
