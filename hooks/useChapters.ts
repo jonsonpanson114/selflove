@@ -8,8 +8,8 @@ export interface Chapter {
   userEntry: string;
   mood?: number; // 1-5
   innerVoice: string;
-  haruStory: string; // ハル（会社員）の物語
-  soraStory: string; // ソラ（シングルマザー）の物語
+  hinaStory: string; // ハル（会社員）の物語
+  renStory: string; // ソラ（シングルマザー）の物語
   chapterNumber: number;
   createdAt: number; // Unix timestamp
   relic?: string;
@@ -30,8 +30,8 @@ export function useChapters() {
         // データ移行ロジック: 旧キー名があれば新キー名にマッピング
         const migrated = parsed.map((c: any) => ({
           ...c,
-          haruStory: c.haruStory || c.parallelStory || "",
-          soraStory: c.soraStory || c.renStory || "",
+          hinaStory: c.hinaStory || c.haruStory || "",
+          renStory: c.renStory || c.renStory || "",
         }));
         setChapters(migrated);
       }
@@ -63,7 +63,7 @@ export function useChapters() {
   );
 
   // ハルの物語コンテキストを取得
-  const getHaruStorySummary = (count: number = 3) => {
+  const getHinaStorySummary = (count: number = 3) => {
     if (chapters.length === 0) return "";
     const recent = [...chapters]
       .sort((a, b) => b.createdAt - a.createdAt)
@@ -71,21 +71,21 @@ export function useChapters() {
       .reverse();
 
     return recent
-      .map((c) => `第${c.chapterNumber}章:\n${c.haruStory}`)
+      .map((c) => `第${c.chapterNumber}章:\n${c.hinaStory}`)
       .join("\n\n---\n\n");
   };
 
   // ソラの物語コンテキストを取得
-  const getSoraStorySummary = (count: number = 3) => {
+  const getRenStorySummary = (count: number = 3) => {
     if (chapters.length === 0) return "";
     const recent = [...chapters]
       .sort((a, b) => b.createdAt - a.createdAt)
-      .filter((c) => c.soraStory) // soraStoryが存在するものだけ
+      .filter((c) => c.renStory) // renStoryが存在するものだけ
       .slice(0, count)
       .reverse();
 
     return recent
-      .map((c) => `第${c.chapterNumber}章:\n${c.soraStory}`)
+      .map((c) => `第${c.chapterNumber}章:\n${c.renStory}`)
       .join("\n\n---\n\n");
   };
 
@@ -118,8 +118,8 @@ export function useChapters() {
     chapters,
     saveChapter,
     deleteChapter,
-    getHaruStorySummary,
-    getSoraStorySummary,
+    getHinaStorySummary,
+    getRenStorySummary,
     getNextChapterNumber,
     importChapters,
     loaded,

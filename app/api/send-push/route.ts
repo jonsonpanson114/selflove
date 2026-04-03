@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
   // ケース1: フロントエンドからのテスト送信 (type & subscription がある場合)
   if (type && subscription) {
     try {
-      const character = type === 'morning' ? 'sora' : 'haru';
-      const message = getRandomMessage(character as 'sora' | 'haru', type);
+      const character = type === 'morning' ? 'ren' : 'hina';
+      const message = getRandomMessage(character as 'ren' | 'hina', type);
       const pushSubscription = typeof subscription === 'string' ? JSON.parse(subscription) : subscription;
       
       await webpush.sendNotification(

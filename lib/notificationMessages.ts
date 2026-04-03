@@ -1,4 +1,4 @@
-type Character = 'sora' | 'haru';
+type Character = 'ren' | 'hina';
 type NotificationType = 'morning' | 'evening';
 
 interface Message {
@@ -7,32 +7,36 @@ interface Message {
 }
 
 const messages: Record<Character, Record<NotificationType, Message[]>> = {
-  sora: {
+  ren: {
     morning: [
-      { title: "ソラ: おはよう", body: "新しい朝が来ました。今日という日を、あなたらしく大切に過ごせますように。" },
-      { title: "ソラ: 朝の挨拶", body: "おはようございます。温かい飲み物でも飲んで、ゆっくり一日を始めませんか？" },
-      { title: "ソラ: 行ってらっしゃい", body: "今日も一日、あなたが心穏やかに過ごせるよう、遠い星から応援しています。" }
+      { title: "レン: おはよう", body: "新しい一日が始まるよ。今日も君のペースで、ゆっくり歩き出そう。" },
+      { title: "レン: 朝の挨拶", body: "おはよう。太陽の光が君を優しく包むように祈っているよ。" },
+      { title: "レン: 行ってらっしゃい", body: "何があっても、応援しているからね。自分を大切に過ごして。" }
     ],
     evening: [
-      { title: "ソラ: お疲れ様", body: "今日一日、本当にお疲れ様でした。今は自分をいたわって、ゆっくり休んでくださいね。" },
-      { title: "ソラ: 夜のひととき", body: "夜も更けてきました。明日への不安は一度手放して、今の静けさを感じてみましょう。" }
+      { title: "レン: お疲れ様", body: "今日一日、本当によく頑張ったね。今は全部忘れて、ゆっくり休んで。" },
+      { title: "レン: 夜のひととき", body: "静かな夜。今日はお前のために、穏やかな時間を過ごしてほしいな。" }
     ]
   },
-  haru: {
+  hina: {
     morning: [
-      { title: "ハル: おはよう", body: "無理しすぎなくて大丈夫だよ。まずは深呼吸して、自分のペースで歩き出そう。" },
-      { title: "ハル: 朝だよ", body: "今日も君の味方でいるよ。何があっても、自分を責めないでいてね。" }
+      { title: "陽菜: おはよう", body: "朝だよ！無理しすぎなくて大丈夫。まずは深呼吸から始めよう。" },
+      { title: "陽菜: 朝のメッセージ", body: "おはよう。今日もあなたの味方でいるわ。自分を責めないでね。" }
     ],
     evening: [
-      { title: "ハル: おやすみ", body: "今日も一日頑張ったね。今は全部忘れて、深い眠りにつこう。おやすみなさい。" },
-      { title: "ハル: 夜のメッセージ", body: "どんな一日だったとしても、君は君のままで素晴らしい。それを忘れないで。" },
-      { title: "ハル: ゆっくり休んで", body: "また明日、新しい物語を紡ごう。今は目を閉じて、心を静める時間だよ。" }
+      { title: "陽菜: おやすみ", body: "一日お疲れ様。今は心も体も解放して、深い眠りにつけるといいわね。" },
+      { title: "陽菜: 夜の静けさ", body: "どんな一日だったとしても、あなたはあなたのままで素晴らしい。それを忘れないで。" },
+      { title: "陽菜: ゆっくり休んで", body: "また明日、新しいページを捲りましょう。おやすみなさい。" }
     ]
   }
 };
 
 export function getRandomMessage(character: Character, type: NotificationType): Message {
-  const charMessages = messages[character][type];
+  const charMessages = messages[character] ? messages[character][type] : null;
+  if (!charMessages) {
+    // フォールバック
+    return { title: "SelfLove", body: "新しい物語が待っています。" };
+  }
   const index = Math.floor(Math.random() * charMessages.length);
   return charMessages[index];
 }

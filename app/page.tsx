@@ -59,11 +59,11 @@ export default function Home() {
   const [entry, setEntry] = useState("");
   const [mood, setMood] = useState<number | null>(null);
   const [innerVoice, setInnerVoice] = useState("");
-  const [haruStory, setHaruStory] = useState("");
-  const [soraStory, setSoraStory] = useState("");
+  const [hinaStory, setHinaStory] = useState("");
+  const [renStory, setRenStory] = useState("");
   const [isLoadingVoice, setIsLoadingVoice] = useState(false);
-  const [isLoadingHaruStory, setIsLoadingHaruStory] = useState(false);
-  const [isLoadingSoraStory, setIsLoadingSoraStory] = useState(false);
+  const [isLoadingHinaStory, setisLoadingHinaStory] = useState(false);
+  const [isLoadingRenStory, setisLoadingRenStory] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [submittedEntry, setSubmittedEntry] = useState("");
   const [submittedMood, setSubmittedMood] = useState<number | null>(null);
@@ -76,7 +76,7 @@ export default function Home() {
   const [notifPermission, setNotifPermission] = useState<string>("default");
   const [showNotifBanner, setShowNotifBanner] = useState(false);
 
-  const { chapters, saveChapter, getHaruStorySummary, getSoraStorySummary, getNextChapterNumber, loaded } =
+  const { chapters, saveChapter, gethinaStorySummary, getrenStorySummary, getNextChapterNumber, loaded } =
     useChapters();
 
   // 1. Initial mounting and prompt initialization
@@ -140,66 +140,66 @@ export default function Home() {
   const chapterNumber = (mounted && loaded) ? getNextChapterNumber() : "—";
   const affirmation = mounted ? getTodayAffirmation() : "";
   const greeting = mounted ? getGreeting() : "";
-  const isLoading = isLoadingVoice || isLoadingHaruStory || isLoadingSoraStory;
+  const isLoading = isLoadingVoice || isLoadingHinaStory || isLoadingRenStory;
 
   const handleSubmit = async () => {
     if (!entry.trim() || isLoading) return;
 
     const entryText = entry.trim();
     const now = new Date();
-    const haruStorySummary = getHaruStorySummary();
-    const soraStorySummary = getSoraStorySummary();
+    const hinaStorySummary = gethinaStorySummary();
+    const renStorySummary = getrenStorySummary();
 
     setIsLoadingVoice(true);
-    setIsLoadingHaruStory(true);
-    setIsLoadingSoraStory(true);
+    setisLoadingHinaStory(true);
+    setisLoadingRenStory(true);
     setInnerVoice("");
-    setHaruStory("");
-    setSoraStory("");
+    setHinaStory("");
+    setRenStory("");
     setIsSubmitted(true);
     setSubmittedEntry(entryText);
     setSubmittedMood(mood);
     setError("");
 
     try {
-      const [voiceResult, haruStoryResult, soraStoryResult] = await Promise.allSettled([
+      const [voiceResult, hinaStoryResult, renStoryResult] = await Promise.allSettled([
         streamResponse(
           "/api/inner-voice",
           { userEntry: entryText },
           (chunk) => setInnerVoice((prev) => prev + chunk)
         ),
         streamResponse(
-          "/api/haru-story",
-          { userEntry: entryText, storySummary: haruStorySummary },
-          (chunk) => setHaruStory((prev) => prev + chunk)
+          "/api/hina-story",
+          { userEntry: entryText, storySummary: hinaStorySummary },
+          (chunk) => setHinaStory((prev) => prev + chunk)
         ),
         streamResponse(
-          "/api/sora-story",
-          { userEntry: entryText, storySummary: soraStorySummary },
-          (chunk) => setSoraStory((prev) => prev + chunk)
+          "/api/ren-story",
+          { userEntry: entryText, storySummary: renStorySummary },
+          (chunk) => setRenStory((prev) => prev + chunk)
         ),
       ]);
 
       const voiceData = voiceResult.status === "fulfilled" ? voiceResult.value : "";
-      const haruData = haruStoryResult.status === "fulfilled" ? haruStoryResult.value : "";
-      const soraData = soraStoryResult.status === "fulfilled" ? soraStoryResult.value : "";
+      const haruData = hinaStoryResult.status === "fulfilled" ? hinaStoryResult.value : "";
+      const soraData = renStoryResult.status === "fulfilled" ? renStoryResult.value : "";
 
       const failedItems = [];
       if (voiceResult.status === "rejected") failedItems.push("内なる自分の声");
-      if (haruStoryResult.status === "rejected") failedItems.push("Haruの物語");
-      if (soraStoryResult.status === "rejected") failedItems.push("Soraの物語");
+      if (hinaStoryResult.status === "rejected") failedItems.push("陽菜の物語");
+      if (renStoryResult.status === "rejected") failedItems.push("レンの物語");
 
       setIsLoadingVoice(false);
-      setIsLoadingHaruStory(false);
-      setIsLoadingSoraStory(false);
+      setisLoadingHinaStory(false);
+      setisLoadingRenStory(false);
 
       if (voiceData || haruData || soraData) {
         saveChapter({
           date: now.toISOString().split("T")[0],
           userEntry: entryText,
           innerVoice: voiceData || "（生成に失敗しました）",
-          haruStory: haruData || "（生成に失敗しました）",
-          soraStory: soraData || "",
+          hinaStory: haruData || "（生成に失敗しました）",
+          renStory: soraData || "",
           mood: mood ?? undefined,
           relic: relicName || undefined,
           relicDescription: relicDesc || undefined,
@@ -213,16 +213,16 @@ export default function Home() {
       if (failedItems.length > 0) {
         const errorMsgs = [];
         if (voiceResult.status === "rejected") errorMsgs.push(`内なる自分の声 (${(voiceResult.reason as any)?.message || "不明なエラー"})`);
-        if (haruStoryResult.status === "rejected") errorMsgs.push(`Haruの物語 (${(haruStoryResult.reason as any)?.message || "不明なエラー"})`);
-        if (soraStoryResult.status === "rejected") errorMsgs.push(`Soraの物語 (${(soraStoryResult.reason as any)?.message || "不明なエラー"})`);
+        if (hinaStoryResult.status === "rejected") errorMsgs.push(`陽菜の物語 (${(hinaStoryResult.reason as any)?.message || "不明なエラー"})`);
+        if (renStoryResult.status === "rejected") errorMsgs.push(`レンの物語 (${(renStoryResult.reason as any)?.message || "不明なエラー"})`);
 
         setError(`${errorMsgs.join("、")} の生成に失敗しました。`);
       }
     } catch (e) {
       setError("通信エラーが発生しました。もう一度試してください。");
       setIsLoadingVoice(false);
-      setIsLoadingHaruStory(false);
-      setIsLoadingSoraStory(false);
+      setisLoadingHinaStory(false);
+      setisLoadingRenStory(false);
     }
   };
 
@@ -231,8 +231,8 @@ export default function Home() {
     setEntry("");
     setMood(null);
     setInnerVoice("");
-    setHaruStory("");
-    setSoraStory("");
+    setHinaStory("");
+    setRenStory("");
     setSubmittedEntry("");
     setSubmittedMood(null);
     setCurrentRelic(null);
@@ -543,24 +543,24 @@ export default function Home() {
             },
             {
               id: "story",
-              label: "もうひとつの話",
+              label: "陽菜の物語",
               content: (
                 <InnerVoiceResponse
-                  text={haruStory}
-                  isLoading={isLoadingHaruStory}
-                  label="Haruの物語"
+                  text={hinaStory}
+                  isLoading={isLoadingHinaStory}
+                  label="陽菜の物語"
                   isStory={true}
                 />
               ),
             },
             {
               id: "sora-story",
-              label: "遠い星の話",
+              label: "レンの物語",
               content: (
                 <InnerVoiceResponse
-                  text={soraStory}
-                  isLoading={isLoadingSoraStory}
-                  label="Soraの物語"
+                  text={renStory}
+                  isLoading={isLoadingRenStory}
+                  label="レンの物語"
                   isStory={true}
                 />
               ),
