@@ -13,10 +13,10 @@ export async function POST(req: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // モデルを gemini-2.0-flash にアップグレード（より高度な文体模倣のため）
+    // 最新最強の Gemini 3.1 Flash Lite Preview を使用
     const model = genAI.getGenerativeModel(
       { 
-        model: "gemini-2.0-flash", 
+        model: "gemini-3.1-flash-lite-preview", 
         systemInstruction: renStorySystemPrompt 
       },
       { apiVersion: "v1beta" }
