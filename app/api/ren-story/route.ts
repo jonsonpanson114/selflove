@@ -13,15 +13,19 @@ export async function POST(req: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
+    // モデルを gemini-2.0-flash にアップグレード（より高度な文体模倣のため）
     const model = genAI.getGenerativeModel(
       { 
-        model: "gemini-3.1-flash-lite-preview",
-        systemInstruction: renStorySystemPrompt
+        model: "gemini-2.0-flash", 
+        systemInstruction: renStorySystemPrompt 
       },
       { apiVersion: "v1beta" }
     );
 
-    const userMessage = buildRenStoryUserMessage(userEntry || "", storySummary || "");
+    const baseUserMessage = buildRenStoryUserMessage(userEntry || "", storySummary || "");
+    // プロンプトの最後に強力な指示を追加
+    const userMessage = `${baseUserMessage}\n\n【最重要指示】村上春樹独特の「僕」の文体を120%意識してください。簡潔な一文、都会的な孤独、具体的な細部、そして日常の中の奇妙な比喩を駆使してください。`;
+
     const result = await model.generateContentStream(userMessage);
 
     const encoder = new TextEncoder();
