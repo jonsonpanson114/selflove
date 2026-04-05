@@ -102,7 +102,13 @@ export const testPushNotification = async (type: 'morning' | 'evening') => {
 
   try {
     const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.getSubscription();
+    let subscription = await registration.pushManager.getSubscription();
+
+    // 購読情報がない場合、自動的に購読を試みる（権限があることが前提）
+    if (!subscription) {
+      console.log('[Push] No subscription found, attempting auto-subscribe...');
+      subscription = await subscribeToPushNotifications();
+    }
 
     if (!subscription) {
       throw new Error('No active subscription found');
@@ -127,3 +133,4 @@ export const testPushNotification = async (type: 'morning' | 'evening') => {
     return null;
   }
 };
+

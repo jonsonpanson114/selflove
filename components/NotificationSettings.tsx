@@ -67,18 +67,29 @@ export default function NotificationSettings() {
     }
   };
 
+  const [isTesting, setIsTesting] = useState<string | null>(null);
+
   const handleTest = async (type: "morning" | "evening") => {
     if (permission !== "granted") {
-      alert("ブラウザの通知許可が必要です。");
+      alert("ブラウザの通知許可が必要です。設定から許可を出してください。");
       return;
     }
-    const result = await testPushNotification(type);
-    if (result) {
-      alert(`${type === "morning" ? "レン" : "陽菜"}からのテスト通知を送信しました。`);
-    } else {
-      alert("送信に失敗しました。通知を一度「有効」にして「サーバーに適用」してからお試しください。");
+    
+    setIsTesting(type);
+    try {
+      const result = await testPushNotification(type);
+      if (result) {
+        alert(`${type === "morning" ? "レン" : "陽菜"}からのテスト通知を送信しました。`);
+      } else {
+        alert("送信に失敗しました。ページを再読み込みして、「全体の通知スイッチ」が有効であることを確認してからもう一度お試しください。");
+      }
+    } catch (err) {
+      alert("通信エラーが発生しました。");
+    } finally {
+      setIsTesting(null);
     }
   };
+
 
   if (!mounted || !settings) return null;
 
@@ -181,6 +192,7 @@ export default function NotificationSettings() {
             </div>
             <button
               onClick={() => handleTest("morning")}
+              disabled={!!isTesting}
               style={{ 
                 marginLeft: "auto", 
                 fontSize: "0.7rem", 
@@ -189,11 +201,13 @@ export default function NotificationSettings() {
                 color: "rgba(253,250,244,0.6)", 
                 padding: "0.3rem 0.8rem", 
                 borderRadius: "15px", 
-                cursor: "pointer"
+                cursor: (isTesting === "morning") ? "wait" : "pointer",
+                opacity: (isTesting === "morning") ? 0.5 : 1
               }}
             >
-              テスト
+              {isTesting === "morning" ? "送信中..." : "テスト"}
             </button>
+
           </div>
         </div>
 
@@ -256,6 +270,7 @@ export default function NotificationSettings() {
             </div>
             <button
               onClick={() => handleTest("evening")}
+              disabled={!!isTesting}
               style={{ 
                 marginLeft: "auto", 
                 fontSize: "0.7rem", 
@@ -264,11 +279,13 @@ export default function NotificationSettings() {
                 color: "rgba(253,250,244,0.6)", 
                 padding: "0.3rem 0.8rem", 
                 borderRadius: "15px", 
-                cursor: "pointer"
+                cursor: (isTesting === "evening") ? "wait" : "pointer",
+                opacity: (isTesting === "evening") ? 0.5 : 1
               }}
             >
-              テスト
+              {isTesting === "evening" ? "送信中..." : "テスト"}
             </button>
+
           </div>
         </div>
 
