@@ -1,4 +1,4 @@
-const CACHE_NAME = 'selflove-v5';
+const CACHE_NAME = 'selflove-v6';
 const PRECACHE_ASSETS = [
   '/',
   '/index.html',
