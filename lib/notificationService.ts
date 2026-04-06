@@ -20,8 +20,11 @@ export async function subscribeToPushNotifications(settings?: NotificationSettin
   }
 
   try {
+    console.log('[Push] Waiting for service worker ready...');
     const registration = await navigator.serviceWorker.ready;
+    console.log('[Push] Service worker is ready');
     let subscription = await registration.pushManager.getSubscription();
+
 
     const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!publicKey) {

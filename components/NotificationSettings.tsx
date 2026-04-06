@@ -25,20 +25,40 @@ export default function NotificationSettings() {
   const handleToggleEnabled = async () => {
     if (!settings) return;
     
+    console.log('[Debug] Toggle Clicked. Current settings.enabled:', settings.enabled);
+    console.log('[Debug] Current permission state:', permission);
+
+    // オフからオンにする時だけ権限を確認
     if (!settings.enabled && permission !== "granted") {
+      console.log('[Debug] Requesting permission...');
       const result = await requestNotificationPermission();
+      console.log('[Debug] Permission result:', result);
       setPermission(result);
-      if (result !== "granted") return;
+      if (result !== "granted") {
+        console.warn('[Debug] Permission not granted. Aborting toggle.');
+        return;
+      }
     }
 
-    const newSettings = { ...settings, enabled: !settings.enabled };
+    const newEnabled = !settings.enabled;
+    const newSettings = { ...settings, enabled: newEnabled };
+    
+    console.log('[Debug] Updating state to:', newEnabled);
     setSettings(newSettings);
     saveNotifSettings(newSettings);
 
-    if (newSettings.enabled) {
-      await subscribeToPushNotifications(newSettings);
+    if (newEnabled) {
+      console.log('[Debug] Starting background subscription...');
+      // 購読処理はバックグラウンドで行い、UIをブロックしないようにする
+      subscribeToPushNotifications(newSettings)
+        .then(() => console.log('[Debug] Background subscription success'))
+        .catch(err => {
+          console.error('[Debug] Background subscription failed:', err);
+          // 必要に応じてここでユーザーに通知（ただしスイッチはオンのままにする）
+        });
     }
   };
+
 
   const handleUpdateSetting = (
     type: "morning" | "evening",
