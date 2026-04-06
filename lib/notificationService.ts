@@ -39,7 +39,8 @@ export async function subscribeToPushNotifications(settings?: NotificationSettin
     }
 
     // サーバーに購読情報を送信
-    await sendSubscriptionToServer(subscription, settings);
+    await sendSubscriptionToServer(subscription.toJSON() as any, settings);
+
     return subscription;
   } catch (error) {
     console.error('[Push] Subscription failed:', error);
@@ -119,7 +120,8 @@ export const testPushNotification = async (type: 'morning' | 'evening') => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         type,
-        subscription: JSON.stringify(subscription)
+        subscription: JSON.stringify(subscription.toJSON())
+
       }),
     });
 
