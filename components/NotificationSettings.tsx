@@ -13,29 +13,38 @@ export default function NotificationSettings() {
   const [permission, setPermission] = useState<string>("default");
   const [mounted, setMounted] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState<string | null>(null);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+
+  const addLog = (msg: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [...prev.slice(-15), `[${timestamp}] ${msg}`]);
+    console.log(`[PWA Debug] ${msg}`);
+  };
 
   useEffect(() => {
     setMounted(true);
-    setSettings(getNotifSettings());
+    const initialSettings = getNotifSettings();
+    setSettings(initialSettings);
     if ("Notification" in window) {
       setPermission(Notification.permission);
+      addLog(`初期化完了。権限: ${Notification.permission}, 有効: ${initialSettings.enabled}`);
     }
   }, []);
 
   const handleToggleEnabled = async () => {
     if (!settings) return;
     
-    console.log('[Debug] Toggle Clicked. Current settings.enabled:', settings.enabled);
-    console.log('[Debug] Current permission state:', permission);
+    addLog(`トグル開始。現在の状態: ${settings.enabled ? "有効" : "無効"}`);
+    addLog(`現在の権限: ${permission}`);
 
-    // オフからオンにする時だけ権限を確認
     if (!settings.enabled && permission !== "granted") {
-      console.log('[Debug] Requesting permission...');
+      addLog("通知許可を申請中...");
       const result = await requestNotificationPermission();
-      console.log('[Debug] Permission result:', result);
+      addLog(`許可申請の結果: ${result}`);
       setPermission(result);
       if (result !== "granted") {
-        console.warn('[Debug] Permission not granted. Aborting toggle.');
+        addLog("※ 許可が降りなかったため処理を中断しました");
         return;
       }
     }
@@ -43,22 +52,47 @@ export default function NotificationSettings() {
     const newEnabled = !settings.enabled;
     const newSettings = { ...settings, enabled: newEnabled };
     
-    console.log('[Debug] Updating state to:', newEnabled);
+    addLog(`内部ステートを ${newEnabled ? "有効" : "無効"} に更新中...`);
     setSettings(newSettings);
     saveNotifSettings(newSettings);
 
     if (newEnabled) {
-      console.log('[Debug] Starting background subscription...');
-      // 購読処理はバックグラウンドで行い、UIをブロックしないようにする
+      addLog("バックグラウンドで購読処理を開始...");
       subscribeToPushNotifications(newSettings)
-        .then(() => console.log('[Debug] Background subscription success'))
+        .then(() => addLog("✅ 購読処理に成功しました"))
         .catch(err => {
-          console.error('[Debug] Background subscription failed:', err);
-          // 必要に応じてここでユーザーに通知（ただしスイッチはオンのままにする）
+          addLog(`❌ 購読エラー: ${err.message || "不明なエラー"}`);
         });
     }
   };
 
+  const repairNotifications = async () => {
+    addLog("=== 通知システムの修復を開始 ===");
+    try {
+      if ('serviceWorker' in navigator) {
+        addLog("Service Workerを解除中...");
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+          await registration.unregister();
+          addLog(`SW Unregistered: ${registration.scope}`);
+        }
+        addLog("キャッシュのクリアを試行中...");
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          for (let key of keys) {
+            await caches.delete(key);
+            addLog(`Cache Deleted: ${key}`);
+          }
+        }
+        addLog("修復完了。2秒後にページを再読み込みします...");
+        setTimeout(() => window.location.reload(), 2000);
+      } else {
+        addLog("Service Workerがサポートされていない環境です");
+      }
+    } catch (err: any) {
+      addLog(`❌ 修復失敗: ${err.message}`);
+    }
+  };
 
   const handleUpdateSetting = (
     type: "morning" | "evening",
@@ -77,39 +111,44 @@ export default function NotificationSettings() {
   const handleSaveAndSync = async () => {
     if (!settings) return;
     setIsSaving(true);
+    addLog("手動同期を開始...");
     try {
       await subscribeToPushNotifications(settings);
+      addLog("✅ 同期成功");
       alert("時刻の設定を保存し、通知をスケジュールしました。");
     } catch (error) {
+      addLog("❌ 同期失敗");
       alert("同期に失敗しました。通知設定を「有効」にしてからお試しください。");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const [isTesting, setIsTesting] = useState<string | null>(null);
-
-  const handleTest = async (type: "morning" | "evening") => {
+  const handleTestDebug = async (type: "morning" | "evening") => {
     if (permission !== "granted") {
+      addLog("❌ テスト失敗: 通知許可がありません");
       alert("ブラウザの通知許可が必要です。設定から許可を出してください。");
       return;
     }
     
+    addLog(`${type === "morning" ? "レン" : "陽菜"}のテスト送信を開始...`);
     setIsTesting(type);
     try {
       const result = await testPushNotification(type);
       if (result) {
+        addLog("✅ テスト通知リクエスト成功");
         alert(`${type === "morning" ? "レン" : "陽菜"}からのテスト通知を送信しました。`);
       } else {
+        addLog("❌ テスト通知リクエスト失敗");
         alert("送信に失敗しました。ページを再読み込みして、「全体の通知スイッチ」が有効であることを確認してからもう一度お試しください。");
       }
     } catch (err) {
+      addLog("❌ 通信エラー発生");
       alert("通信エラーが発生しました。");
     } finally {
       setIsTesting(null);
     }
   };
-
 
   if (!mounted || !settings) return null;
 
@@ -211,7 +250,7 @@ export default function NotificationSettings() {
               </select>
             </div>
             <button
-              onClick={() => handleTest("morning")}
+              onClick={() => handleTestDebug("morning")}
               disabled={!!isTesting}
               style={{ 
                 marginLeft: "auto", 
@@ -227,7 +266,6 @@ export default function NotificationSettings() {
             >
               {isTesting === "morning" ? "送信中..." : "テスト"}
             </button>
-
           </div>
         </div>
 
@@ -289,7 +327,7 @@ export default function NotificationSettings() {
               </select>
             </div>
             <button
-              onClick={() => handleTest("evening")}
+              onClick={() => handleTestDebug("evening")}
               disabled={!!isTesting}
               style={{ 
                 marginLeft: "auto", 
@@ -305,7 +343,6 @@ export default function NotificationSettings() {
             >
               {isTesting === "evening" ? "送信中..." : "テスト"}
             </button>
-
           </div>
         </div>
 
@@ -336,7 +373,45 @@ export default function NotificationSettings() {
         )}
       </div>
 
-      {permission === "denied" && (
+      <div style={{ marginTop: "2rem", borderTop: "1px solid rgba(253,250,244,0.1)", paddingTop: "1rem" }}>
+        <h4 style={{ fontSize: "0.8rem", margin: "0 0 0.5rem", opacity: 0.6 }}>通知システムの管理</h4>
+        <button
+          onClick={repairNotifications}
+          style={{
+            width: "100%",
+            padding: "0.6rem",
+            borderRadius: "8px",
+            fontSize: "0.7rem",
+            backgroundColor: "rgba(255, 107, 107, 0.1)",
+            color: "#FF6B6B",
+            border: "1px solid rgba(255, 107, 107, 0.3)",
+            cursor: "pointer",
+            marginBottom: "1rem"
+          }}
+        >
+          通知を修復する（Service Worker解除）
+        </button>
+
+        {debugLogs.length > 0 && (
+          <div style={{ 
+            backgroundColor: "rgba(0,0,0,0.3)", 
+            borderRadius: "8px", 
+            padding: "0.8rem", 
+            fontSize: "0.6rem", 
+            fontFamily: "monospace", 
+            maxHeight: "150px", 
+            overflowY: "auto",
+            lineHeight: "1.4",
+            border: "1px solid rgba(253,250,244,0.1)"
+          }}>
+            {debugLogs.map((log, i) => (
+              <div key={i} style={{ marginBottom: "2px", color: log.includes("❌") || log.includes("Error") ? "#FF9F9F" : "#FDFAF4" }}>{log}</div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {(permission === "denied") && (
         <div style={{ marginTop: "1rem", color: "#FF6B6B", fontSize: "0.7rem", textAlign: "center", lineHeight: "1.4" }}>
           通知がブラウザでブロックされています。設定から許可してください。
         </div>
