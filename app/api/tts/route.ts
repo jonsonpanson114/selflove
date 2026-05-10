@@ -31,8 +31,8 @@ export async function POST(req: Request) {
         speakingRate = 0.95;
         break;
       case "hina": // 陽菜の物語（明るく感情豊かな若い女性）
-        voiceName = "ja-JP-Neural2-B"; // BまたはF
-        pitch = 1.0;
+        voiceName = "ja-JP-Neural2-F"; // Fは少し高めで可愛らしい元気な声
+        pitch = 3.0; // ピッチを上げてより可愛らしく
         speakingRate = 1.05;
         break;
       case "ren": // レンの物語（落ち着いて安心感のある若い男性）
